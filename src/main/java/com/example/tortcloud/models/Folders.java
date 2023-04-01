@@ -8,7 +8,9 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.Set;
+import java.util.UUID;
 
 @Entity
 @JsonIgnoreProperties({"hibernateLazyInitializer"})
@@ -18,6 +20,8 @@ public class Folders {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotEmpty
+    @NotNull
     private String name;
 
     @NotNull
@@ -36,6 +40,18 @@ public class Folders {
 //    @ManyToOne(fetch = FetchType.LAZY)
 //    @OnDelete(action = OnDeleteAction.CASCADE)
 //    private Folders folderParent;
+
+    private LocalDateTime dateCreated;
+
+    private LocalDateTime dateModified;
+
+    private boolean root;
+
+    private String uuid;
+
+    private boolean inTrash;
+
+    private String path;
 
     public Folders() {
     }
@@ -80,5 +96,53 @@ public class Folders {
 
     public void setUsers(Users users) {
         this.users = users;
+    }
+
+    public LocalDateTime getDateCreated() {
+        return dateCreated;
+    }
+
+    public void setDateCreated(LocalDateTime dateCreated) {
+        this.dateCreated = dateCreated;
+    }
+
+    public LocalDateTime getDateModified() {
+        return dateModified;
+    }
+
+    public void setDateModified(LocalDateTime dateModified) {
+        this.dateModified = dateModified;
+    }
+
+    public boolean isRoot() {
+        return root;
+    }
+
+    public void setRoot(boolean root) {
+        this.root = root;
+    }
+
+    public String getUuid() {
+        return uuid;
+    }
+
+    public void setUuid(String uuid) {
+        this.uuid = uuid;
+    }
+
+    public boolean isInTrash() {
+        return inTrash;
+    }
+
+    public void setInTrash(boolean inTrash) {
+        this.inTrash = inTrash;
+    }
+
+    public String getPath() {
+        return path;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
     }
 }

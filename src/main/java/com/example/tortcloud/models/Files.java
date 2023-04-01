@@ -4,6 +4,10 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
+import java.time.LocalDateTime;
 
 @Entity
 @JsonIgnoreProperties({"hibernateLazyInitializer"})
@@ -15,7 +19,11 @@ public class Files {
 
     @NotEmpty
     @NotNull
-    private String filename;
+    private String name;
+
+    @NotEmpty
+    @NotNull
+    private String location;
 
     @NotNull
     @NotEmpty
@@ -27,11 +35,19 @@ public class Files {
     private Users users;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Folders folder;
 
     private boolean inTrash;
 
     private boolean bookmark;
+
+    private LocalDateTime dateCreated;
+
+    private LocalDateTime dateModified;
+
+    @NotNull
+    private Long size;
 
     public Files() {
     }
@@ -44,12 +60,12 @@ public class Files {
         this.id = id;
     }
 
-    public String getFilename() {
-        return filename;
+    public String getLocation() {
+        return location;
     }
 
-    public void setFilename(String filename) {
-        this.filename = filename;
+    public void setLocation(String location) {
+        this.location = location;
     }
 
     public String getFormat() {
@@ -90,5 +106,37 @@ public class Files {
 
     public void setBookmark(boolean bookmark) {
         this.bookmark = bookmark;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public LocalDateTime getDateCreated() {
+        return dateCreated;
+    }
+
+    public void setDateCreated(LocalDateTime dateCreated) {
+        this.dateCreated = dateCreated;
+    }
+
+    public LocalDateTime getDateModified() {
+        return dateModified;
+    }
+
+    public void setDateModified(LocalDateTime dateModified) {
+        this.dateModified = dateModified;
+    }
+
+    public Long getSize() {
+        return size;
+    }
+
+    public void setSize(Long size) {
+        this.size = size;
     }
 }

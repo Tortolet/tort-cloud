@@ -4,4 +4,7 @@ import com.example.tortcloud.models.Folders;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface FoldersRepo extends JpaRepository<Folders, Long> {
+    Folders findByName(String name);
+
+    Folders findByUuid(String uuid);
 }
