@@ -1,5 +1,6 @@
 package com.example.tortcloud.controllers;
 
+import com.example.tortcloud.exceptions.FileNotFound;
 import com.example.tortcloud.exceptions.FolderNotFound;
 import com.example.tortcloud.exceptions.InvalidUser;
 import com.example.tortcloud.models.Files;
@@ -44,12 +45,12 @@ public class FilesController {
         Users users = userService.getUserFromAuth();
 
         Folders folders = folderService.findFolderById(folderId);
-        if(!folders.getUsers().equals(users)) {
-            throw new InvalidUser("Нельзя добавлять файлы другим пользователям");
-        }
-
         if(folders.getId() == null){
             throw new FolderNotFound("Папка не найдена");
+        }
+
+        if(!folders.getUsers().equals(users)) {
+            throw new InvalidUser("Нельзя добавлять файлы другим пользователям");
         }
 
         for (MultipartFile file: files) {
@@ -80,13 +81,29 @@ public class FilesController {
         return ResponseEntity.ok().body("Файлы были успешно загружены");
     }
 
+    @GetMapping("/get_file_by_id")
+    public ResponseEntity<Files> getFileById(@RequestHeader Long fileId) {
+        Users users = userService.getUserFromAuth();
+
+        Files file = filesService.findFileById(fileId);
+        if(file.getId() == null){
+            throw new FileNotFound("Файл не найден");
+        }
+
+        if(!file.getUsers().equals(users)) {
+            throw new InvalidUser("Нельзя просматривать файлы другим пользователям");
+        }
+
+        return ResponseEntity.ok().body(file);
+    }
+
     @DeleteMapping("/delete_file")
     public ResponseEntity<String> deleteFile(@RequestHeader Long fileId) {
         Users users = userService.getUserFromAuth();
 
         Files file = filesService.findFileById(fileId);
         if(file.getId() == null){
-            throw new FolderNotFound("Папка не найдена");
+            throw new FileNotFound("Файл не найден");
         }
 
         if(!file.getUsers().equals(users)) {
@@ -102,5 +119,37 @@ public class FilesController {
         filesRepo.delete(file);
 
         return ResponseEntity.ok().body("Файл " + file.getLocation() + " был успешно удален");
+    }
+
+    @DeleteMapping("/delete_files_checked")
+    public ResponseEntity<String> deleteFilesChecked(@RequestBody List<Files> files) {
+        Users users = userService.getUserFromAuth();
+
+        String path;
+
+        if(files.size() == 0) {
+            throw new FileNotFound("Файлы не выбраны");
+        }
+
+        for (Files file : files) {
+            if (file.getId() == null) {
+                throw new FileNotFound("Один из файлов не найден");
+            }
+
+            if (!file.getUsers().getUsername().equals(users.getUsername())) {
+                throw new InvalidUser("Нельзя удалять файлы другим пользователям");
+            }
+
+            path = file.getFolder().getPath() + "/" + file.getLocation();
+            try {
+                FileUtils.delete(Path.of(path).toFile());
+            } catch (IOException e) {
+                throw new FileNotFound("Один из файлов не был найден");
+            }
+        }
+
+        filesRepo.deleteAll(files);
+
+        return ResponseEntity.ok().body("Файлы были удалены");
     }
 }
