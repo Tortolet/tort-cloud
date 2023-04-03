@@ -29,17 +29,17 @@ public class Folders {
     private Users users;
 
     // 1-й вариант
-    @OneToMany(mappedBy = "folders", cascade = CascadeType.REMOVE, orphanRemoval = true)
-    private Set<Folders> folderParent;
-
-    @ManyToOne
-    @JoinColumn(name = "folder_parent")
-    private Folders folders;
+//    @OneToMany(mappedBy = "folders", cascade = CascadeType.REMOVE, orphanRemoval = true)
+//    private Set<Folders> folderParent;
+//
+//    @ManyToOne
+//    @JoinColumn(name = "folder_parent")
+//    private Folders folders;
 
     // 2-й вариант
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @OnDelete(action = OnDeleteAction.CASCADE)
-//    private Folders folderParent;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private Folders folders;
 
     private LocalDateTime dateCreated;
 
@@ -50,6 +50,8 @@ public class Folders {
     private String uuid;
 
     private boolean inTrash;
+
+    private boolean bookmark;
 
     private String path;
 
@@ -72,7 +74,6 @@ public class Folders {
         this.name = name;
     }
 
-    // 1-й
     public Folders getFolders() {
         return folders;
     }
@@ -80,15 +81,6 @@ public class Folders {
     public void setFolders(Folders folders) {
         this.folders = folders;
     }
-
-    // 2-й
-//    public Folders getFolderParent() {
-//        return folderParent;
-//    }
-//
-//    public void setFolderParent(Folders folderParent) {
-//        this.folderParent = folderParent;
-//    }
 
     public Users getUsers() {
         return users;
@@ -144,5 +136,13 @@ public class Folders {
 
     public void setPath(String path) {
         this.path = path;
+    }
+
+    public boolean isBookmark() {
+        return bookmark;
+    }
+
+    public void setBookmark(boolean bookmark) {
+        this.bookmark = bookmark;
     }
 }
