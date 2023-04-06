@@ -1,5 +1,6 @@
 package com.example.tortcloud.controllers;
 
+import com.example.tortcloud.exceptions.FileAlreadyExist;
 import com.example.tortcloud.exceptions.FileNotFound;
 import com.example.tortcloud.exceptions.FolderNotFound;
 import com.example.tortcloud.exceptions.InvalidUser;
@@ -7,9 +8,16 @@ import com.example.tortcloud.models.Files;
 import com.example.tortcloud.models.Folders;
 import com.example.tortcloud.models.Users;
 import com.example.tortcloud.repos.FilesRepo;
+import com.example.tortcloud.schemas.CustomResponseErrorSchema;
 import com.example.tortcloud.services.FilesService;
 import com.example.tortcloud.services.FolderService;
 import com.example.tortcloud.services.UserService;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -40,6 +48,13 @@ public class FilesController {
     private FolderService folderService;
 
 
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successful operation",
+                    content = @Content(schema = @Schema(example = "Файлы были успешно загружены"))),
+            @ApiResponse(responseCode = "400", description = "Invalid User / File already exist in folder", content = @Content(mediaType = "application/json", schema = @Schema(implementation = CustomResponseErrorSchema.class))),
+            @ApiResponse(responseCode = "404", description = "Folder / User not found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = CustomResponseErrorSchema.class)))
+    })
+    @SecurityRequirement(name = "basicAuth")
     @PostMapping("/add_files")
     public ResponseEntity<String> addFiles(@RequestBody MultipartFile[] files, @RequestHeader Long folderId) {
         Users users = userService.getUserFromAuth();
@@ -51,6 +66,17 @@ public class FilesController {
 
         if(!folders.getUsers().equals(users)) {
             throw new InvalidUser("Нельзя добавлять файлы другим пользователям");
+        }
+
+        List<Files> checkFiles = filesRepo.findByFolder(folders);
+
+        for (MultipartFile file : files){
+            Files checkFile = filesRepo.findByLocation(file.getOriginalFilename());
+            for(Files file1 : checkFiles){
+                if(file1.equals(checkFile)){
+                    throw new FileAlreadyExist("Файл " + checkFile.getLocation() + " уже существует в данной папке");
+                }
+            }
         }
 
         for (MultipartFile file: files) {
@@ -81,6 +107,13 @@ public class FilesController {
         return ResponseEntity.ok().body("Файлы были успешно загружены");
     }
 
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successful operation",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Files.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid User", content = @Content(mediaType = "application/json", schema = @Schema(implementation = CustomResponseErrorSchema.class))),
+            @ApiResponse(responseCode = "404", description = "File / User not found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = CustomResponseErrorSchema.class)))
+    })
+    @SecurityRequirement(name = "basicAuth")
     @GetMapping("/get_file_by_id")
     public ResponseEntity<Files> getFileById(@RequestHeader Long fileId) {
         Users users = userService.getUserFromAuth();
@@ -97,6 +130,13 @@ public class FilesController {
         return ResponseEntity.ok().body(file);
     }
 
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successful operation",
+                    content = @Content(schema = @Schema(example = "Файл [file] был успешно удален"))),
+            @ApiResponse(responseCode = "400", description = "Invalid User", content = @Content(mediaType = "application/json", schema = @Schema(implementation = CustomResponseErrorSchema.class))),
+            @ApiResponse(responseCode = "404", description = "File / User not found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = CustomResponseErrorSchema.class)))
+    })
+    @SecurityRequirement(name = "basicAuth")
     @DeleteMapping("/delete_file")
     public ResponseEntity<String> deleteFile(@RequestHeader Long fileId) {
         Users users = userService.getUserFromAuth();
@@ -121,6 +161,13 @@ public class FilesController {
         return ResponseEntity.ok().body("Файл " + file.getLocation() + " был успешно удален");
     }
 
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successful operation",
+                    content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = Files.class)))),
+            @ApiResponse(responseCode = "400", description = "Invalid User", content = @Content(mediaType = "application/json", schema = @Schema(implementation = CustomResponseErrorSchema.class))),
+            @ApiResponse(responseCode = "404", description = "File(s) / User not found or No files selected", content = @Content(mediaType = "application/json", schema = @Schema(implementation = CustomResponseErrorSchema.class)))
+    })
+    @SecurityRequirement(name = "basicAuth")
     @DeleteMapping("/delete_files_checked")
     public ResponseEntity<String> deleteFilesChecked(@RequestBody List<Files> files) {
         Users users = userService.getUserFromAuth();
@@ -131,15 +178,18 @@ public class FilesController {
             throw new FileNotFound("Файлы не выбраны");
         }
 
-        for (Files file : files) {
-            if (file.getId() == null) {
+        for (Files file: files){
+            Files checkFile = filesService.findFileById(file.getId());
+            if (checkFile.getId() == null) {
                 throw new FileNotFound("Один из файлов не найден");
             }
 
             if (!file.getUsers().getUsername().equals(users.getUsername())) {
                 throw new InvalidUser("Нельзя удалять файлы другим пользователям");
             }
+        }
 
+        for (Files file : files) {
             path = file.getFolder().getPath() + "/" + file.getLocation();
             try {
                 FileUtils.delete(Path.of(path).toFile());

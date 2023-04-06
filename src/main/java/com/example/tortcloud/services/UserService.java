@@ -12,7 +12,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -84,7 +83,7 @@ public class UserService {
     public Users getUserFromAuth() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         Users user = userRepository.findByUsername(auth.getName());
-        if(user.getId() == null){
+        if(user == null){
             throw new UserNotFound("Пользователь не найден");
         }
         return user;
