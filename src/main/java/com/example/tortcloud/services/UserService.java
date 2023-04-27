@@ -68,8 +68,9 @@ public class UserService {
 
     public boolean registrationUser(Users user){
         Users userInBD = userRepository.findByUsername(user.getUsername());
+        Users userInBDEmail = userRepository.findByEmail(user.getEmail());
 
-        if(userInBD != null){
+        if(userInBD != null || userInBDEmail != null){
             return false;
         }
 

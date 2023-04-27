@@ -9,6 +9,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
@@ -29,20 +30,33 @@ public class WebSecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        HttpSessionRequestCache requestCache = new HttpSessionRequestCache();
+        requestCache.setMatchingRequestParameterName(null);
         http
                 .cors().disable()
                 .csrf().disable();
 
         http
+                .requestCache((cache) -> cache
+                        .requestCache(requestCache));
+
+        http
                 .authorizeHttpRequests((authz) -> {
                             try {
                                 authz
-                                        .anyRequest().permitAll()
+                                        .requestMatchers("/css/**", "/js/**", "/img/**","/api/registration","/signup" ,"/").permitAll()
+                                        .anyRequest().authenticated()
                                         .and()
                                         .formLogin()
                                         .loginPage("/login")
                                         .defaultSuccessUrl("/")
-                                        .permitAll();
+                                        .permitAll()
+                                        .and()
+                                        .rememberMe()
+                                        .and()
+                                        .logout()
+                                        .permitAll()
+                                        .deleteCookies("JSESSIONID");
                             } catch (Exception e) {
                                 throw new RuntimeException(e);
                             }
