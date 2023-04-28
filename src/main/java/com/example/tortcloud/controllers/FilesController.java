@@ -1,9 +1,6 @@
 package com.example.tortcloud.controllers;
 
-import com.example.tortcloud.exceptions.FileAlreadyExist;
-import com.example.tortcloud.exceptions.FileNotFound;
-import com.example.tortcloud.exceptions.FolderNotFound;
-import com.example.tortcloud.exceptions.InvalidUser;
+import com.example.tortcloud.exceptions.*;
 import com.example.tortcloud.models.Files;
 import com.example.tortcloud.models.Folders;
 import com.example.tortcloud.models.Users;
@@ -69,13 +66,31 @@ public class FilesController {
         }
 
         List<Files> checkFiles = filesRepo.findByFolder(folders);
+        long sizeOfMultipartFiles = 0L;
+        Long sizeOfFilesDb = filesRepo.findByUsers(users);
+        long res;
 
         for (MultipartFile file : files){
-            Files checkFile = filesRepo.findByLocation(file.getOriginalFilename());
+            Files checkFile = filesRepo.findByLocationAndFolder(file.getOriginalFilename(), folders);
             for(Files file1 : checkFiles){
                 if(file1.equals(checkFile)){
                     throw new FileAlreadyExist("Файл " + checkFile.getLocation() + " уже существует в данной папке");
                 }
+            }
+
+            sizeOfMultipartFiles += file.getSize();
+        }
+
+        if(sizeOfFilesDb == null){
+            if(sizeOfMultipartFiles > users.getStorage()){
+                throw new UserStorageIsAlreadyFull("Недостаточно места на диске");
+            }
+        }
+
+        if (sizeOfFilesDb != null) {
+            res = sizeOfMultipartFiles + sizeOfFilesDb;
+            if(res > users.getStorage()){
+                throw new UserStorageIsAlreadyFull("Недостаточно места на диске");
             }
         }
 

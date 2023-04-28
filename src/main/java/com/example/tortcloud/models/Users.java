@@ -40,6 +40,8 @@ public class Users {
     @Size(message = "Описание не должно превышать более 128 символов", max = 128)
     private String about;
 
+    private long storage;
+
     @ElementCollection(targetClass = Roles.class, fetch = FetchType.EAGER)
     @CollectionTable(name = "user_role", joinColumns = @JoinColumn(name = "user_id"))
     @Enumerated(EnumType.STRING)
@@ -118,5 +120,13 @@ public class Users {
 
     public void setRoles(Set<Roles> roles) {
         this.roles = roles;
+    }
+
+    public long getStorage() {
+        return storage;
+    }
+
+    public void setStorage(long storage) {
+        this.storage = storage;
     }
 }
