@@ -77,4 +77,11 @@ public class UserController {
         return ResponseEntity.ok().body(userService.allUsers());
     }
 
+    @GetMapping("/get_user_storage")
+    public String getUserStorage() {
+        Users users = userService.getUserFromAuth();
+
+        return String.valueOf(users.getStorage());
+    }
+
 }

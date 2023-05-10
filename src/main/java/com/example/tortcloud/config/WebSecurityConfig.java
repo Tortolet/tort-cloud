@@ -30,15 +30,15 @@ public class WebSecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        HttpSessionRequestCache requestCache = new HttpSessionRequestCache();
-        requestCache.setMatchingRequestParameterName(null);
+//        HttpSessionRequestCache requestCache = new HttpSessionRequestCache();
+//        requestCache.setMatchingRequestParameterName(null);
         http
                 .cors().disable()
                 .csrf().disable();
 
-        http
-                .requestCache((cache) -> cache
-                        .requestCache(requestCache));
+//        http
+//                .requestCache((cache) -> cache
+//                        .requestCache(requestCache));
 
         http
                 .authorizeHttpRequests((authz) -> {

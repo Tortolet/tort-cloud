@@ -13,4 +13,10 @@ public interface FoldersRepo extends JpaRepository<Folders, Long> {
     List<Folders> findByFolders_Id(Long id);
 
     List<Folders> findByFolders_Name(String name);
+
+    List<Folders> findByFolders(Folders folders);
+
+    Folders findByNameAndRoot(String name, boolean root);
+
+    List<Folders> findAllByUuid(String uuid);
 }

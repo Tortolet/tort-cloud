@@ -76,7 +76,7 @@ public class UserService {
 
         user.setActive(true);
         user.setRoles(Collections.singleton(Roles.ROLE_USER));
-        user.setAvatar("default_avatar.jpg");
+        user.setAvatar("default_avatar.png");
         user.setStorage(15000000000L);
 
         return true;

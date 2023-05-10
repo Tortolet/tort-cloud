@@ -9,9 +9,13 @@ import java.io.File;
 public class TortCloudApplication {
 
     public static final String UPLOAD_DIR = System.getProperty("user.dir") + "/upload";
+    public static final String AVATAR_DIR = System.getProperty("user.dir") + "/avatars";
+    public static final String ZIP_DIR = System.getProperty("user.dir") + "/zip";
 
     public static void main(String[] args) {
         new File(UPLOAD_DIR).mkdir();
+        new File(AVATAR_DIR).mkdir();
+        new File(ZIP_DIR).mkdir();
         SpringApplication.run(TortCloudApplication.class, args);
     }
 

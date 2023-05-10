@@ -217,4 +217,29 @@ public class FilesController {
 
         return ResponseEntity.ok().body("Файлы были удалены");
     }
+
+    @GetMapping("/get_bytes")
+    public String getBytesByUser() {
+        Users users = userService.getUserFromAuth();
+
+        Long bytes = filesRepo.findByUsers(users);
+
+        return bytes.toString();
+    }
+
+    @GetMapping("/get_bytes_si")
+    public String getBytesByUserSI() {
+        Users users = userService.getUserFromAuth();
+
+        Long bytes = filesRepo.findByUsers(users);
+
+        return filesService.humanReadableByteCountSI(bytes);
+    }
+
+    @GetMapping("/get_bytes_si_by_user")
+    public String getBytesByUserStorageSI() {
+        Users users = userService.getUserFromAuth();
+
+        return filesService.humanReadableByteCountSI(users.getStorage());
+    }
 }
