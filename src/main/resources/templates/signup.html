@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="https://www.thymeleaf.org">
 
 <head>
     <meta charset="utf-8">
@@ -49,6 +49,10 @@
                             <div class="mb-3"><input id="floatingUsername" class="form-control" type="text" name="username" placeholder="Логин" onkeyup="success()" required></div>
                             <div class="mb-3"><input id="floatingPassword" class="form-control" type="password" name="password" placeholder="Пароль" onkeyup="success()" required></div>
                             <div class="mb-3"><input id="floatingPasswordConfirm" class="form-control" type="password" name="confirmPassword" placeholder="Подтвердите пароль" onkeyup="success()" required></div>
+                            <select class="form-select mb-3" id="companySelector" aria-label="Default select example" onchange="success()">
+                                <option value="zero-select" selected>Компания</option>
+                                <option th:each="company: ${companies}" th:value="${company.getId()}" th:text="${company.getCompany()}"></option>
+                            </select>
                             <div class="mb-3">
                                 <div class="form-check text-start"><input class="form-check-input" type="checkbox" id="showPasswordCheck" onclick="showPassword()"><label class="form-check-label d-lg-flex justify-content-lg-start" for="showPasswordCheck">Показать пароль</label></div>
                             </div>

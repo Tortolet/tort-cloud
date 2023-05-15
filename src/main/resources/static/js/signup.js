@@ -1,7 +1,7 @@
 const URL = "http://localhost:8080";
 
 function success() {
-    document.getElementById('buttonSuccess').disabled = document.getElementById("floatingEmail").value === "" || document.getElementById("floatingUsername").value === "" || document.getElementById("floatingPassword").value === "" || document.getElementById("floatingPasswordConfirm").value === "" || document.getElementById("floatingEmail").classList.contains('border-danger');
+    document.getElementById('buttonSuccess').disabled = document.getElementById("floatingEmail").value === "" || document.getElementById("floatingUsername").value === "" || document.getElementById("floatingPassword").value === "" || document.getElementById("floatingPasswordConfirm").value === "" || document.getElementById("floatingEmail").classList.contains('border-danger') || document.getElementById("companySelector").value === "zero-select";
 }
 
 function showPassword() {
@@ -45,7 +45,8 @@ function addUser(){
         method: 'POST',
         headers: {
             'Accept': 'application/json',
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'companyId': document.getElementById("companySelector").value
         },
         body: JSON.stringify(
             {

@@ -25,7 +25,8 @@
             </ul>
             <div class="flex-shrink-0 dropdown"><a class="link-dark d-block text-decoration-none dropdown-toggle" id="profile" href="#" data-bs-toggle="dropdown" aria-expanded="false" style="margin-right: 40px;"><img class="rounded-circle img-fluid" th:src="${'/avatars/' + avatar}" alt="mdo" style="width: 32px;height: 32px;"><strong class="ms-2" th:text="${username}"></strong></a>
                 <ul id="dropdownMenu" class="shadow dropdown-menu text-small">
-                    <li><a class="dropdown-item" href="#">Настройки</a></li>
+                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editSettingsProfile">Настройки</a></li>
+                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#feedbackModal">Написать разработчику</a></li>
                     <li><hr class="dropdown-divider"></li>
                     <li><a class="link-danger dropdown-item" href="/logout">Выйти</a></li>
                 </ul>
@@ -70,7 +71,7 @@
                 </div>
             </div>
             <hr style="margin: 0px 0px;margin-top: 10px;">
-            <div><a class="btn fs-2 text-start dropdown-toggle" data-bs-toggle="collapse" aria-expanded="true" aria-controls="collapse-2" href="#collapse-2" role="button" style="margin-top: 15px;width: 100%;">Файлы (кол-во)</a>
+            <div><a class="btn fs-2 text-start dropdown-toggle" data-bs-toggle="collapse" aria-expanded="true" aria-controls="collapse-2" href="#collapse-2" role="button" style="margin-top: 15px;width: 100%;">Файлы (4)</a>
                 <div class="collapse show" id="collapse-2"><button class="btn btn-primary" type="button" style="margin-left: 15px;margin-top: 10px;">Добавить файл(ы)</button>
                     <div id="main-content-1" class="file_manager" style="margin-top: 15px;">
                         <div class="container">
@@ -125,6 +126,53 @@
     </div>
 </div>
 <!-- Modal -->
+<div class="modal fade" id="editSettingsProfile" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title fs-5" id="editProfileLabel">Редактирование профиля</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <h4>Изменение логина</h4>
+                    <div id="login-notify"></div>
+                    <label for="editingLogin" class="form-label">Логин</label>
+                    <input type="text" class="form-control" id="editingLogin">
+                    <div class="form-text" id="basic-addon4">При изменении логина необъодимо снова войти в аккаунт.</div>
+                    <button type="button" class="btn btn-primary mt-3" id="submitEditLoginButton">Сохранить</button>
+                </div>
+                <hr>
+                <div class="mb-3">
+                    <div class="mb-1">
+                        <h4>Изменение пароля</h4>
+                        <div id="password-notify"></div>
+                        <label for="editingOldPass" class="form-label">Старый пароль</label>
+                        <input type="password" class="form-control" id="editingOldPass">
+                    </div>
+                    <div class="mb-1">
+                        <label for="editingNewPass" class="form-label">Новый пароль</label>
+                        <input type="password" class="form-control" id="editingNewPass" required>
+                    </div>
+                    <div>
+                        <label for="editingNewPassConfirm" class="form-label">Подтвердите пароль</label>
+                        <input type="password" class="form-control" id="editingNewPassConfirm" required>
+                        <button type="button" class="btn btn-primary mt-3" id="submitEditPasswordButton">Сохранить</button>
+                    </div>
+                </div>
+                <hr>
+                <div class="mb-3">
+                    <h4>Изменение почты</h4>
+                    <div id="mail-notify"></div>
+                    <label for="editingMail" class="form-label">E-Mail</label>
+                    <input type="email" class="form-control" id="editingMail">
+                    <button type="button" class="btn btn-primary mt-3" id="submitEditMailButton">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal -->
 <div class="modal fade" id="editFolderName" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -142,6 +190,27 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
                 <button type="button" class="btn btn-primary" id="submitButton">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal -->
+<div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="titleForDeveloperLabel">Сообщение разработчику</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <label for="textareaForDev" class="form-label">Сообщение</label>
+                    <textarea class="form-control" id="textareaForDev"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn btn-primary" id="submitTextForDevButton">Сохранить</button>
             </div>
         </div>
     </div>

@@ -37,8 +37,9 @@ public class Users {
 
     private String avatar;
 
-    @Size(message = "Описание не должно превышать более 128 символов", max = 128)
-    private String about;
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Companies companies;
 
     private long storage;
 
@@ -106,12 +107,12 @@ public class Users {
         this.avatar = avatar;
     }
 
-    public String getAbout() {
-        return about;
+    public Companies getCompanies() {
+        return companies;
     }
 
-    public void setAbout(String about) {
-        this.about = about;
+    public void setCompanies(Companies companies) {
+        this.companies = companies;
     }
 
     public Set<Roles> getRoles() {

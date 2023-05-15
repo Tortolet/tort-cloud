@@ -214,6 +214,7 @@ function getFolders() {
                                             <li><a class="dropdown-item pin-folder" href="#" id="${data[i].uuid}">Закрепить</a></li>
                                             <li><a class="dropdown-item edit-folder" href="#" data-bs-toggle="modal" data-bs-target="#editFolderName">Редактировать</a></li>
                                             <li><a class="dropdown-item" href="#">Выбрать</a></li>
+                                            <li><a class="dropdown-item" href="#">Поделиться</a></li>
                                             <li><a class="dropdown-item info-folder" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
                                             <li><a class="dropdown-item text-danger delete-folder" href="#" data-bs-toggle="modal" data-bs-target="#deleteFolderModal">Удалить</a></li>
                                         </ul></div></div><div class="icon"><i class="fas fa-folder fa-solid"></i></div><a href="/main/${data[i].uuid}" style="color: inherit; text-decoration: none;"><div class="file-name border-top"><p class="m-b-5">${data[i].name}</p><small><span id="size-${data[i].uuid}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
@@ -229,6 +230,7 @@ function getFolders() {
                                             <li><a class="dropdown-item unpin-folder" href="#" id="${data[i].uuid}">Открепить</a></li>
                                             <li><a class="dropdown-item edit-folder" href="#" data-bs-toggle="modal" data-bs-target="#editFolderName">Редактировать</a></li>
                                             <li><a class="dropdown-item" href="#">Выбрать</a></li>
+                                            <li><a class="dropdown-item" href="#">Поделиться</a></li>
                                             <li><a class="dropdown-item info-folder" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
                                             <li><a class="dropdown-item text-danger delete-folder" href="#" data-bs-toggle="modal" data-bs-target="#deleteFolderModal">Удалить</a></li>
                                         </ul></div></div><div class="icon"><i class="fas fa-folder fa-solid"></i></div><a href="/main/${data[i].uuid}" style="color: inherit; text-decoration: none;"><div class="file-name border-top"><p class="m-b-5">${data[i].name} <span><i class="fas fa-solid fa-star" style="color: #00bfff;"></i></span></p><small><span id="size-${data[i].uuid}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>

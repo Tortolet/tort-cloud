@@ -1,6 +1,7 @@
 package com.example.tortcloud.controllers;
 
 import com.example.tortcloud.models.Users;
+import com.example.tortcloud.repos.CompaniesRepo;
 import com.example.tortcloud.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -14,8 +15,12 @@ public class UserFrontController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private CompaniesRepo companiesRepo;
+
     @GetMapping("/signup")
-    public String registration(){
+    public String registration(Model model){
+        model.addAttribute("companies", companiesRepo.findAll());
         return "signup";
     }
 

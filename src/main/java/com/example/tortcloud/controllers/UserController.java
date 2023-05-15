@@ -1,10 +1,14 @@
 package com.example.tortcloud.controllers;
 
-import com.example.tortcloud.exceptions.UserAlreadyExist;
-import com.example.tortcloud.exceptions.UserPasswordNotConfirm;
+import com.example.tortcloud.exceptions.*;
+import com.example.tortcloud.models.Companies;
 import com.example.tortcloud.models.Users;
+import com.example.tortcloud.repos.AccessesRepo;
+import com.example.tortcloud.repos.CompaniesRepo;
+import com.example.tortcloud.repos.UsersRepo;
 import com.example.tortcloud.schemas.AddUserSchema;
 import com.example.tortcloud.schemas.CustomResponseErrorSchema;
+import com.example.tortcloud.services.CompaniesService;
 import com.example.tortcloud.services.UserService;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -13,6 +17,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +29,15 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private UsersRepo usersRepo;
+
+    @Autowired
+    private CompaniesService companiesService;
+
+    @Autowired
+    private AccessesRepo accessesRepo;
+
     @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(mediaType = "application/json",
             schema = @Schema(implementation = AddUserSchema.class)))
     @ApiResponses(value = {
@@ -32,17 +46,34 @@ public class UserController {
             @ApiResponse(responseCode = "400", description = "Password not confirm / User already exist", content = @Content(mediaType = "application/json", schema = @Schema(implementation = CustomResponseErrorSchema.class))),
     })
     @PostMapping("/registration")
-    public ResponseEntity<Users> addNewUser(@RequestBody Users user){
+    public ResponseEntity<Users> addNewUser(@RequestBody Users user, @RequestHeader Long companyId){
+
+        Companies company = companiesService.findCompanyById(companyId);
+
+        if (company.getId() == null){
+            throw new InvalidCompany("Такой компании не существует");
+        }
+
+        user.setCompanies(company);
 
         if (!user.getPassword().equals(user.getPasswordConfirm())){
             throw new UserPasswordNotConfirm("Пароли не совпадают");
+        }
+
+        if (usersRepo.countByCompanies(user.getCompanies()) > company.getStaff()) {
+            throw new CrowdedEmployees("Количество сотрудников превышено");
         }
 
         if(!userService.registrationUser(user)){
             throw new UserAlreadyExist("Пользователь уже существует");
         }
 
+        if (accessesRepo.findByCompanyAndEmail(company, user.getEmail()) == null) {
+            throw new AccessDenied("Доступ запрещен");
+        }
+
         userService.save(user);
+        accessesRepo.delete(accessesRepo.findByCompanyAndEmail(company, user.getEmail()));
 
         return ResponseEntity.ok().body(user);
     }
