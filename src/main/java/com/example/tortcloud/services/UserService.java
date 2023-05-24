@@ -45,6 +45,12 @@ public class UserService {
         return userRepository.findAll();
     }
 
+    public void saveWithoutFolder(Users user) {
+        String enPas = bCryptPasswordEncoder.encode(user.getPassword());
+        user.setPassword(enPas);
+        this.userRepository.save(user);
+    }
+
     public void save(Users user){
         String enPas = bCryptPasswordEncoder.encode(user.getPassword());
         user.setPassword(enPas);

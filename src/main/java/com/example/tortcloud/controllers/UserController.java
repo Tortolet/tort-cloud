@@ -8,19 +8,24 @@ import com.example.tortcloud.repos.CompaniesRepo;
 import com.example.tortcloud.repos.UsersRepo;
 import com.example.tortcloud.schemas.AddUserSchema;
 import com.example.tortcloud.schemas.CustomResponseErrorSchema;
+import com.example.tortcloud.schemas.MessageSchema;
 import com.example.tortcloud.services.CompaniesService;
+import com.example.tortcloud.services.DefaultEmailService;
 import com.example.tortcloud.services.UserService;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.constraints.Email;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api")
@@ -37,6 +42,9 @@ public class UserController {
 
     @Autowired
     private AccessesRepo accessesRepo;
+
+    @Autowired
+    private DefaultEmailService defaultEmailService;
 
     @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(mediaType = "application/json",
             schema = @Schema(implementation = AddUserSchema.class)))
@@ -115,4 +123,61 @@ public class UserController {
         return String.valueOf(users.getStorage());
     }
 
+    @PutMapping("/update_user_password")
+    public ResponseEntity<String> editUserPassword(@RequestHeader String oldPassword, @RequestHeader String newPassword, @RequestHeader String newPasswordConfirm) {
+        Users user = userService.getUserFromAuth();
+
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        if (encoder.matches(oldPassword, user.getPassword())) {
+            if (Objects.equals(newPassword, newPasswordConfirm)) {
+                user.setPassword(newPassword);
+                userService.saveWithoutFolder(user);
+
+                return ResponseEntity.ok().body("Вы успешно изменили пароль у пользователя: " + user.getUsername());
+            } else {
+                return ResponseEntity.badRequest().body("Пароли не совпадают");
+            }
+        } else {
+            return ResponseEntity.badRequest().body("Старый пароль неверен");
+
+        }
+    }
+
+    @PutMapping("/update_email")
+    public ResponseEntity<Users> updateEmailUser(@RequestHeader @Email String email) {
+        Users user = userService.getUserFromAuth();
+
+        Users userInBDEmail = usersRepo.findByEmail(email);
+        if(userInBDEmail != null){
+            throw new UserAlreadyExist("Пользователь с такой почтой уже существует");
+        }
+
+        if(email.isEmpty()){
+            throw new AccessDenied("Ошибка. Почта пуста");
+        }
+
+        user.setEmail(email);
+        usersRepo.save(user);
+
+        return ResponseEntity.ok().body(user);
+    }
+
+    @PostMapping("/sent_message_to_admin")
+    public ResponseEntity<MessageSchema> sentMessage(@RequestBody String message) {
+        Users user = userService.getUserFromAuth();
+
+        if(message.isEmpty()){
+            throw new AccessDenied("Ошибка. Сообщение не может быть пустым");
+        }
+
+        MessageSchema messageSent = new MessageSchema(
+                "ivanmineev52@gmail.com",
+                "Обращение от " + user.getUsername() + " (" + user.getEmail() + ", " + user.getCompanies().getCompany() + ")",
+                message
+        );
+
+        defaultEmailService.sendSimpleEmail(messageSent);
+
+        return ResponseEntity.ok().body(messageSent);
+    }
 }

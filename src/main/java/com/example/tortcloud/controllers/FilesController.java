@@ -5,6 +5,7 @@ import com.example.tortcloud.models.Files;
 import com.example.tortcloud.models.Folders;
 import com.example.tortcloud.models.Users;
 import com.example.tortcloud.repos.FilesRepo;
+import com.example.tortcloud.repos.FoldersRepo;
 import com.example.tortcloud.schemas.CustomResponseErrorSchema;
 import com.example.tortcloud.services.FilesService;
 import com.example.tortcloud.services.FolderService;
@@ -43,6 +44,9 @@ public class FilesController {
 
     @Autowired
     private FolderService folderService;
+
+    @Autowired
+    private FoldersRepo foldersRepo;
 
 
     @ApiResponses(value = {
@@ -241,5 +245,33 @@ public class FilesController {
         Users users = userService.getUserFromAuth();
 
         return filesService.humanReadableByteCountSI(users.getStorage());
+    }
+
+    @GetMapping("/get_files_main")
+    public ResponseEntity<List<Files>> getAllFilesMain() {
+        Users users = userService.getUserFromAuth();
+
+        Folders mainFolder = foldersRepo.findByNameAndRoot(users.getUsername(), true);
+
+        return ResponseEntity.ok().body(filesRepo.findByFolder(mainFolder));
+    }
+
+    @GetMapping("/get_files_folder/{uuid}")
+    public ResponseEntity<List<Files>> getAllFilesFolder(@PathVariable String uuid) {
+        Users users = userService.getUserFromAuth();
+
+        Folders folder = foldersRepo.findByUuid(uuid);
+
+        return ResponseEntity.ok().body(filesRepo.findByFolder(folder));
+    }
+
+    @GetMapping("/get_bytes_file/{id}")
+    public String getCurrentFileBytes(@PathVariable Long id) {
+        Users users = userService.getUserFromAuth();
+
+        Files file = filesService.findFileById(id);
+        long bytes = file.getSize();
+
+        return filesService.humanReadableByteCountSI(bytes);
     }
 }

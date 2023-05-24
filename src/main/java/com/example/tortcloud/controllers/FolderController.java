@@ -1,11 +1,9 @@
 package com.example.tortcloud.controllers;
 
-import com.example.tortcloud.exceptions.FolderAlreadyExist;
-import com.example.tortcloud.exceptions.FolderDeleteRootDir;
-import com.example.tortcloud.exceptions.FolderNotFound;
-import com.example.tortcloud.exceptions.InvalidUser;
+import com.example.tortcloud.exceptions.*;
 import com.example.tortcloud.models.Folders;
 import com.example.tortcloud.models.Users;
+import com.example.tortcloud.repos.FilesRepo;
 import com.example.tortcloud.repos.FoldersRepo;
 import com.example.tortcloud.schemas.AddFolderSchema;
 import com.example.tortcloud.schemas.CustomResponseErrorSchema;
@@ -24,6 +22,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
@@ -32,7 +31,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api")
@@ -51,6 +53,9 @@ public class FolderController {
 
     @Autowired
     private FilesService filesService;
+
+    @Autowired
+    private FilesRepo filesRepo;
 
     @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(mediaType = "application/json",
             schema = @Schema(implementation = AddFolderSchema.class)))
@@ -82,6 +87,9 @@ public class FolderController {
         Users users = userService.getUserFromAuth();
 
         Folders folder = foldersRepo.findByUuid(uuid);
+        if (folder == null) {
+            throw new FolderNotFound("Папка не найдена");
+        }
 
         return ResponseEntity.ok().body(foldersRepo.findByFolders(folder));
     }
@@ -93,6 +101,15 @@ public class FolderController {
         Folders folder = foldersRepo.findByUuid(uuid);
 
         return ResponseEntity.ok().body(folder);
+    }
+
+    @GetMapping("/get_folder_main_uuid")
+    public ResponseEntity<Folders> getFolderMain() {
+        Users users = userService.getUserFromAuth();
+
+        Folders mainFolder = foldersRepo.findByNameAndRoot(users.getUsername(), true);
+
+        return ResponseEntity.ok().body(mainFolder);
     }
 
     @PutMapping("/pin_folder/{uuid}")
@@ -291,5 +308,139 @@ public class FolderController {
         foldersRepo.save(folder);
 
         return ResponseEntity.ok().body(folder);
+    }
+
+    @PostMapping("/add_folders")
+    public ResponseEntity<String> addNewFoldersWithFiles(@RequestHeader String folderUUID, @RequestBody MultipartFile[] files) {
+        Users users = userService.getUserFromAuth();
+
+        Folders folder = foldersRepo.findByUuid(folderUUID);
+        if(folder.getId() == null){
+            throw new FolderNotFound("Папка не найдена");
+        }
+
+        for(MultipartFile file : files) {
+            Path fileNameAndPath = Paths.get(folder.getPath(), file.getOriginalFilename());
+             com.example.tortcloud.models.Files files1 = new com.example.tortcloud.models.Files();
+            files1.setLocation(file.getOriginalFilename());
+
+            // создание папок
+            String resTest = fileNameAndPath.toString().substring(0, fileNameAndPath.toString().lastIndexOf("\\"));
+            String[] folders = resTest.split("\\\\");
+            String lastDir = folder.getPath().substring(folder.getPath().lastIndexOf("\\") + 1);
+            boolean lastDirBool = false;
+
+            String parentFolder = null;
+            StringBuilder forSetFolder = new StringBuilder();
+            for (String folders1 : folders) {
+                Folders folderNew = new Folders();
+                if (folders1.equals(lastDir)) {
+                    lastDirBool = true;
+                    parentFolder = folders1;
+                }
+
+                if (lastDirBool) {
+                    if(!folders1.equals(lastDir)) {
+                        forSetFolder.append("\\").append(folders1);
+                        Folders folderFound = foldersRepo.findByFolders_Folders_NameAndName(parentFolder, folders1);
+
+                        if(folderFound == null){
+                            System.out.println(folder.getPath() + forSetFolder);
+                            Folders folderFoundPath = foldersRepo.findByPath(folder.getPath() + forSetFolder);
+
+                            folderNew.setPath(folder.getPath() + forSetFolder);
+                            folderNew.setName(folders1);
+                            folderNew.setBookmark(false);
+                            folderNew.setUuid(UUID.randomUUID().toString());
+                            folderNew.setUsers(users);
+
+                            String path = folder.getPath() + forSetFolder;
+                            String newPath = path.substring(0, path.lastIndexOf("\\"));
+                            Folders folderFoundFolder = foldersRepo.findByPath(newPath);
+                            if (folderFoundFolder != null){
+                                folderNew.setFolders(folderFoundFolder);
+                            }
+
+                            if(folderFoundPath == null)
+                                folderService.save(folderNew);
+                        }
+                    }
+                }
+
+                parentFolder = folders1;
+            }
+            if(!Files.exists(Path.of(resTest))) {
+                new File(resTest).mkdirs();
+            }
+
+            // создание файлов
+            try {
+                if(!Objects.requireNonNull(file.getOriginalFilename()).isEmpty())
+                    Files.write(fileNameAndPath, file.getBytes());
+                if(!files1.getLocation().isEmpty()) {
+                    String path = files1.getLocation();
+                    String newPath = path.replace("/", "\\");
+                    String forPathFolder = newPath.substring(0, newPath.lastIndexOf("\\"));
+                    Folders pathFolder = foldersRepo.findByPath(folder.getPath() + "\\" + forPathFolder);
+                    if (pathFolder != null) {
+                        files1.setFolder(pathFolder);
+                    }
+                    String fileName = newPath.substring(newPath.lastIndexOf("\\") + 1);
+                    files1.setLocation(fileName);
+                    files1.setName(file.getName());
+                    files1.setSize(file.getSize());
+                    files1.setFormat(file.getContentType());
+                    files1.setUsers(users);
+                    files1.setInTrash(false);
+                    files1.setBookmark(false);
+                    files1.setDateCreated(LocalDateTime.now());
+                    files1.setDateModified(LocalDateTime.now());
+
+                    com.example.tortcloud.models.Files checkFile = filesRepo.findByLocationAndFolder(files1.getLocation(), pathFolder);
+                    if (checkFile == null) {
+                        filesRepo.save(files1);
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return ResponseEntity.ok().body("OK");
+    }
+
+    @GetMapping("/get_all_path")
+    public ResponseEntity<List<Folders>> getAllPath(@RequestHeader String uuid) {
+        Users users = userService.getUserFromAuth();
+        Folders startFolder = foldersRepo.findByNameAndRoot(users.getUsername(), true);
+
+        StringBuilder builder = new StringBuilder();
+
+        List<Folders> foldersList = new ArrayList<>();
+
+        Folders endFolder = foldersRepo.findByUuid(uuid);
+        String path = endFolder.getPath();
+        String[] folders = path.split("\\\\");
+        boolean foundUsername = false;
+        List<String> newFolders = new ArrayList<>();
+
+        for (String folder : folders) {
+            if (folder.equals(users.getUsername())) {
+                foundUsername = true;
+            }
+
+            if (foundUsername) {
+                newFolders.add(folder);
+            }
+        }
+
+        for (String folder : newFolders){
+            if(!folder.equals(users.getUsername())) {
+                builder.append("\\").append(folder);
+            }
+            foldersList.add(foldersRepo.findByPath(startFolder.getPath() + builder));
+        }
+
+
+        return ResponseEntity.ok().body(foldersList);
     }
 }

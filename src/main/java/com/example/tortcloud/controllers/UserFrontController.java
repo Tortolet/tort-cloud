@@ -29,6 +29,7 @@ public class UserFrontController {
         Users users = userService.getUserFromAuth();
         model.addAttribute("username", users.getUsername());
         model.addAttribute("avatar", users.getAvatar());
+        model.addAttribute("company", users.getCompanies().getCompany());
         return "main";
     }
 
@@ -37,6 +38,7 @@ public class UserFrontController {
         Users users = userService.getUserFromAuth();
         model.addAttribute("username", users.getUsername());
         model.addAttribute("avatar", users.getAvatar());
+        model.addAttribute("company", users.getCompanies().getCompany());
         return "folder";
     }
 }
