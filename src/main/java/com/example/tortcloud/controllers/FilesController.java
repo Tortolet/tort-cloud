@@ -227,6 +227,9 @@ public class FilesController {
         Users users = userService.getUserFromAuth();
 
         Long bytes = filesRepo.findByUsers(users);
+        if(bytes == null) {
+            return "0";
+        }
 
         return bytes.toString();
     }
@@ -236,6 +239,9 @@ public class FilesController {
         Users users = userService.getUserFromAuth();
 
         Long bytes = filesRepo.findByUsers(users);
+        if(bytes == null) {
+            return filesService.humanReadableByteCountSI(0);
+        }
 
         return filesService.humanReadableByteCountSI(bytes);
     }
