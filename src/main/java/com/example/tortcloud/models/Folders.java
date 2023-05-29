@@ -28,15 +28,6 @@ public class Folders {
     @ManyToOne(fetch = FetchType.LAZY)
     private Users users;
 
-    // 1-й вариант
-//    @OneToMany(mappedBy = "folders", cascade = CascadeType.REMOVE, orphanRemoval = true)
-//    private Set<Folders> folderParent;
-//
-//    @ManyToOne
-//    @JoinColumn(name = "folder_parent")
-//    private Folders folders;
-
-    // 2-й вариант
     @ManyToOne(fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Folders folders;
@@ -52,6 +43,8 @@ public class Folders {
     private boolean inTrash;
 
     private boolean bookmark;
+
+    private boolean shared;
 
     private String path;
 
@@ -144,5 +137,13 @@ public class Folders {
 
     public void setBookmark(boolean bookmark) {
         this.bookmark = bookmark;
+    }
+
+    public boolean isShared() {
+        return shared;
+    }
+
+    public void setShared(boolean shared) {
+        this.shared = shared;
     }
 }

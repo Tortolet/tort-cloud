@@ -41,4 +41,27 @@ public class UserFrontController {
         model.addAttribute("company", users.getCompanies().getCompany());
         return "folder";
     }
+
+    @GetMapping("/trash")
+    public String trashPage(Model model) {
+        Users users = userService.getUserFromAuth();
+        model.addAttribute("username", users.getUsername());
+        model.addAttribute("avatar", users.getAvatar());
+        model.addAttribute("company", users.getCompanies().getCompany());
+        return "trash";
+    }
+
+    @GetMapping("/pinned")
+    public String pinPage(Model model) {
+        Users users = userService.getUserFromAuth();
+        model.addAttribute("username", users.getUsername());
+        model.addAttribute("avatar", users.getAvatar());
+        model.addAttribute("company", users.getCompanies().getCompany());
+        return "pinned";
+    }
+
+    @GetMapping("/shared-folders/{uuid}")
+    public String sharedFolders(@PathVariable String uuid, Model model) {
+        return "shared-folders";
+    }
 }

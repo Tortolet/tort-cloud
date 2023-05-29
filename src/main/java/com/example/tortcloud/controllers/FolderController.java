@@ -41,6 +41,7 @@ import java.util.UUID;
 public class FolderController {
 
     public static final String ZIP = System.getProperty("user.dir") + "/zip";
+    public static final String UPLOAD = System.getProperty("user.dir") + "\\upload";
 
     @Autowired
     private FolderService folderService;
@@ -74,29 +75,154 @@ public class FolderController {
 
     // переработать в будущем
     @GetMapping("/get_folders_main")
-    public ResponseEntity<List<Folders>> getAllFoldersMain() {
+    public ResponseEntity<List<Folders>> getAllFoldersMain(@RequestParam(required = false) String folderSort) {
         Users users = userService.getUserFromAuth();
 
         Folders mainFolder = foldersRepo.findByNameAndRoot(users.getUsername(), true);
 
-        return ResponseEntity.ok().body(foldersRepo.findByFolders(mainFolder));
+        if(folderSort != null){
+            if (folderSort.equals("asc")){
+                return ResponseEntity.ok().body(foldersRepo.findByFoldersAndInTrashOrderByNameAsc(mainFolder, false));
+            }
+            if (folderSort.equals("desc")){
+                return ResponseEntity.ok().body(foldersRepo.findByFoldersAndInTrashOrderByNameDesc(mainFolder, false));
+            }
+            if (folderSort.equals("date-asc")){
+                return ResponseEntity.ok().body(foldersRepo.findByFoldersAndInTrashOrderByDateCreatedAsc(mainFolder, false));
+            }
+            if (folderSort.equals("date-desc")){
+                return ResponseEntity.ok().body(foldersRepo.findByFoldersAndInTrashOrderByDateCreatedDesc(mainFolder, false));
+            }
+        }
+
+        return ResponseEntity.ok().body(foldersRepo.findByFoldersAndInTrash(mainFolder, false));
+    }
+
+    @GetMapping("/get_folders_in_trash")
+    public ResponseEntity<List<Folders>> getAllFoldersInTrash() {
+        Users users = userService.getUserFromAuth();
+
+        return ResponseEntity.ok().body(foldersRepo.findByUsersAndInTrash(users, true));
+    }
+
+    @GetMapping("/get_folders_pinned")
+    public ResponseEntity<List<Folders>> getAllFoldersInPinPage() {
+        Users users = userService.getUserFromAuth();
+
+        return ResponseEntity.ok().body(foldersRepo.findByUsersAndBookmarkAndInTrash(users, true, false));
     }
 
     @GetMapping("/get_folders_uuid/{uuid}")
-    public ResponseEntity<List<Folders>> getAllFoldersByFolder(@PathVariable String uuid) {
+    public ResponseEntity<List<Folders>> getAllFoldersByFolder(@PathVariable String uuid, @RequestParam(required = false) String folderSort) {
         Users users = userService.getUserFromAuth();
 
         Folders folder = foldersRepo.findByUuid(uuid);
         if (folder == null) {
             throw new FolderNotFound("Папка не найдена");
         }
+        if(folder.isInTrash()){
+            throw new FolderNotFound("Папка не найдена");
+        }
 
-        return ResponseEntity.ok().body(foldersRepo.findByFolders(folder));
+        if(folderSort != null){
+            if (folderSort.equals("asc")){
+                return ResponseEntity.ok().body(foldersRepo.findByFoldersAndInTrashOrderByNameAsc(folder, false));
+            }
+            if (folderSort.equals("desc")){
+                return ResponseEntity.ok().body(foldersRepo.findByFoldersAndInTrashOrderByNameDesc(folder, false));
+            }
+            if (folderSort.equals("date-asc")){
+                return ResponseEntity.ok().body(foldersRepo.findByFoldersAndInTrashOrderByDateCreatedAsc(folder, false));
+            }
+            if (folderSort.equals("date-desc")){
+                return ResponseEntity.ok().body(foldersRepo.findByFoldersAndInTrashOrderByDateCreatedDesc(folder, false));
+            }
+        }
+
+        return ResponseEntity.ok().body(foldersRepo.findByFoldersAndInTrash(folder, false));
+    }
+
+    @GetMapping("/get_folders_uuid_shared/{uuid}")
+    public ResponseEntity<List<Folders>> getSharedFolders(@PathVariable String uuid, @RequestParam(required = false) String folderSort) {
+        Folders folder = foldersRepo.findByUuid(uuid);
+
+        if (folder == null) {
+            throw new FolderNotFound("Папка не найдена");
+        }
+        if(folder.isInTrash()){
+            throw new FolderNotFound("Папка не найдена");
+        }
+
+        String path = folder.getPath();
+        String[] folders = path.split("\\\\");
+        boolean foundUsername = false;
+        List<String> newFolders = new ArrayList<>();
+
+        StringBuilder builder = new StringBuilder();
+
+        List<Folders> foldersList = new ArrayList<>();
+
+        String startPath = null;
+
+        for (String folder1 : folders) {
+            if (folder1.equals(folder.getUsers().getUsername())) {
+                foundUsername = true;
+                startPath = UPLOAD + "\\" + folder1;
+            }
+
+            if (foundUsername) {
+                newFolders.add(folder1);
+            }
+        }
+
+        for (String folder1 : newFolders){
+            if(!folder1.equals(folder.getUsers().getUsername())) {
+                builder.append("\\").append(folder1);
+            }
+            Folders newFolder = foldersRepo.findByPath(startPath + builder);
+            if(newFolder.isInTrash()){
+                throw new FolderNotFound("Папка не найдена");
+            }
+            foldersList.add(newFolder);
+        }
+
+        Folders startFolderShare = new Folders();
+        for (Folders folderShare : foldersList) {
+            if (folderShare.isShared()){
+                startFolderShare = folderShare;
+                break;
+            }
+        }
+
+        if (startFolderShare.getPath() == null){
+            throw new FolderNotFound("Папка не найдена");
+        }
+
+        if (!folder.getPath().contains(startFolderShare.getPath())){
+            throw new FolderNotFound("Папка не найдена");
+        }
+
+        if(folderSort != null){
+            if (folderSort.equals("asc")){
+                return ResponseEntity.ok().body(foldersRepo.findByFoldersAndInTrashOrderByNameAsc(folder, false));
+            }
+            if (folderSort.equals("desc")){
+                return ResponseEntity.ok().body(foldersRepo.findByFoldersAndInTrashOrderByNameDesc(folder, false));
+            }
+            if (folderSort.equals("date-asc")){
+                return ResponseEntity.ok().body(foldersRepo.findByFoldersAndInTrashOrderByDateCreatedAsc(folder, false));
+            }
+            if (folderSort.equals("date-desc")){
+                return ResponseEntity.ok().body(foldersRepo.findByFoldersAndInTrashOrderByDateCreatedDesc(folder, false));
+            }
+        }
+
+        return ResponseEntity.ok().body(foldersRepo.findByFoldersAndInTrash(folder, false));
     }
 
     @GetMapping("/get_folder_uuid/{uuid}")
     public ResponseEntity<Folders> getFolderByFolder(@PathVariable String uuid) {
-        Users users = userService.getUserFromAuth();
+//        Users users = userService.getUserFromAuth();
 
         Folders folder = foldersRepo.findByUuid(uuid);
 
@@ -134,6 +260,30 @@ public class FolderController {
         foldersRepo.save(folder);
 
         return "Папка с названием " + folder.getName() + " была откреплена";
+    }
+
+    @PutMapping("/share_folder/{uuid}")
+    public String shareFolder(@PathVariable String uuid) {
+        Users users = userService.getUserFromAuth();
+
+        Folders folder = foldersRepo.findByUuid(uuid);
+        folder.setShared(true);
+
+        foldersRepo.save(folder);
+
+        return "Папка с названием " + folder.getName() + " была поделена";
+    }
+
+    @PutMapping("/unshared_folder/{uuid}")
+    public String unShareFolder(@PathVariable String uuid) {
+        Users users = userService.getUserFromAuth();
+
+        Folders folder = foldersRepo.findByUuid(uuid);
+        folder.setShared(false);
+
+        foldersRepo.save(folder);
+
+        return "Папка с названием " + folder.getName() + " была отключена от деления";
     }
 
     @ApiResponses(value = {
@@ -195,6 +345,48 @@ public class FolderController {
         return ResponseEntity.ok().body("Успешно удалено");
     }
 
+    @PutMapping ("/folder_to_trash")
+    public ResponseEntity<Folders> updateFolderToDeleteFolder(@RequestHeader Long folderId){
+        Users users = userService.getUserFromAuth();
+
+        Folders folders = folderService.findFolderById(folderId);
+        if(folders.getId() == null){
+            throw new FolderNotFound("Папка не найдена");
+        }
+
+        if(!folders.getUsers().equals(users)) {
+            throw new InvalidUser("Нельзя удалять папки других пользователей");
+        }
+
+        if(folders.isRoot()) {
+            throw new FolderDeleteRootDir("Нельзя удалить корневую папку");
+        }
+
+        folders.setInTrash(true);
+        foldersRepo.save(folders);
+
+        return ResponseEntity.ok().body(folders);
+    }
+
+    @PutMapping ("/return_folder")
+    public ResponseEntity<Folders> returnFolder(@RequestHeader Long folderId){
+        Users users = userService.getUserFromAuth();
+
+        Folders folders = folderService.findFolderById(folderId);
+        if(folders.getId() == null){
+            throw new FolderNotFound("Папка не найдена");
+        }
+
+        if(!folders.getUsers().equals(users)) {
+            throw new InvalidUser("Нельзя возвращать папки других пользователей");
+        }
+
+        folders.setInTrash(false);
+        foldersRepo.save(folders);
+
+        return ResponseEntity.ok().body(folders);
+    }
+
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successful operation",
                     content = @Content(schema = @Schema(example = "Выбранные папки были удалены"))),
@@ -240,7 +432,7 @@ public class FolderController {
 
     @GetMapping("/get_bytes_folder/{uuid}")
     public String getFolderBytes(@PathVariable String uuid){
-        Users users = userService.getUserFromAuth();
+//        Users users = userService.getUserFromAuth();
 
         Folders folder = foldersRepo.findByUuid(uuid);
         long bytes = FileUtils.sizeOfDirectory(Path.of(folder.getPath()).toFile());
@@ -250,7 +442,7 @@ public class FolderController {
 
     @GetMapping("/download")
     public ResponseEntity<ByteArrayResource> downloadFile(@RequestParam String uuid) throws IOException {
-        Users users = userService.getUserFromAuth();
+//        Users users = userService.getUserFromAuth();
 
         Folders folders = foldersRepo.findByUuid(uuid);
         String zipName = "archive-" + folders.getUsers().getUsername() + ".zip";
@@ -314,9 +506,30 @@ public class FolderController {
     public ResponseEntity<String> addNewFoldersWithFiles(@RequestHeader String folderUUID, @RequestBody MultipartFile[] files) {
         Users users = userService.getUserFromAuth();
 
+        long sizeOfMultipartFiles = 0L;
+        Long sizeOfFilesDb = filesRepo.findByUsers(users);
+        long res;
+
         Folders folder = foldersRepo.findByUuid(folderUUID);
         if(folder.getId() == null){
             throw new FolderNotFound("Папка не найдена");
+        }
+
+        for (MultipartFile file : files){
+            sizeOfMultipartFiles += file.getSize();
+        }
+
+        if(sizeOfFilesDb == null){
+            if(sizeOfMultipartFiles > users.getStorage()){
+                throw new UserStorageIsAlreadyFull("Недостаточно места на диске");
+            }
+        }
+
+        if (sizeOfFilesDb != null) {
+            res = sizeOfMultipartFiles + sizeOfFilesDb;
+            if(res > users.getStorage()){
+                throw new UserStorageIsAlreadyFull("Недостаточно места на диске");
+            }
         }
 
         for(MultipartFile file : files) {
@@ -437,7 +650,11 @@ public class FolderController {
             if(!folder.equals(users.getUsername())) {
                 builder.append("\\").append(folder);
             }
-            foldersList.add(foldersRepo.findByPath(startFolder.getPath() + builder));
+            Folders newFolder = foldersRepo.findByPath(startFolder.getPath() + builder);
+            if(newFolder.isInTrash()){
+                throw new FolderNotFound("Папка не найдена");
+            }
+            foldersList.add(newFolder);
         }
 
 

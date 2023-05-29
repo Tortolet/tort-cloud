@@ -45,8 +45,9 @@ public class WebSecurityConfig {
                                 authz
                                         .shouldFilterAllDispatcherTypes(false)
                                         .requestMatchers(HttpMethod.POST, "/api/registration").permitAll()
+                                        .requestMatchers(HttpMethod.GET, "/api/get_folders_uuid_shared/**", "/api/get_bytes_folder/**", "/api/download", "/api/get_folder_uuid/**", "/api/get_files_shared/**", "/api/get_bytes_file/**", "/api/view").permitAll()
                                         .requestMatchers("/api/**").authenticated()
-                                        .requestMatchers(HttpMethod.GET, "/css/**", "/js/**", "/img/**" ,"/signup" ,"/").permitAll()
+                                        .requestMatchers(HttpMethod.GET, "/css/**", "/js/**", "/img/**" ,"/signup" ,"/", "/shared-folders/**", "/404").permitAll()
                                         .anyRequest().authenticated()
                                         .and()
                                         .formLogin()

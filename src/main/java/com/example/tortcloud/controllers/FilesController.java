@@ -18,11 +18,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.net.URLConnection;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -259,7 +263,7 @@ public class FilesController {
 
         Folders mainFolder = foldersRepo.findByNameAndRoot(users.getUsername(), true);
 
-        return ResponseEntity.ok().body(filesRepo.findByFolder(mainFolder));
+        return ResponseEntity.ok().body(filesRepo.findByFolderAndInTrash(mainFolder, false));
     }
 
     @GetMapping("/get_files_folder/{uuid}")
@@ -268,16 +272,67 @@ public class FilesController {
 
         Folders folder = foldersRepo.findByUuid(uuid);
 
-        return ResponseEntity.ok().body(filesRepo.findByFolder(folder));
+        return ResponseEntity.ok().body(filesRepo.findByFolderAndInTrash(folder, false));
+    }
+
+    @GetMapping("/get_files_pinned")
+    public ResponseEntity<List<Files>> getPinnedFiles() {
+        Users users = userService.getUserFromAuth();
+
+        return ResponseEntity.ok().body(filesRepo.findByUsersAndBookmarkAndInTrash(users, true, false));
+    }
+
+    @GetMapping("/get_files_trash")
+    public ResponseEntity<List<Files>> getTrashFiles() {
+        Users users = userService.getUserFromAuth();
+
+        return ResponseEntity.ok().body(filesRepo.findByUsersAndInTrash(users, true));
+    }
+
+    @GetMapping("/get_files_shared/{uuid}")
+    public ResponseEntity<List<Files>> getFilesFolderShared(@PathVariable String uuid) {
+        Folders folder = foldersRepo.findByUuid(uuid);
+
+        return ResponseEntity.ok().body(filesRepo.findByFolderAndInTrash(folder, false));
     }
 
     @GetMapping("/get_bytes_file/{id}")
     public String getCurrentFileBytes(@PathVariable Long id) {
-        Users users = userService.getUserFromAuth();
+//        Users users = userService.getUserFromAuth();
 
         Files file = filesService.findFileById(id);
         long bytes = file.getSize();
 
         return filesService.humanReadableByteCountSI(bytes);
+    }
+
+    @GetMapping("/view")
+    public ResponseEntity<ByteArrayResource> viewFile(@RequestParam("id") Long id) throws IOException {
+        Files file = filesService.findFileById(id);
+        if (file == null) {
+            throw new FileNotFound("Файл не найден");
+        }
+
+        // Load file from the file system
+        Path filePath = Paths.get(file.getFolder().getPath() + "\\" + file.getLocation());
+        byte[] data = java.nio.file.Files.readAllBytes(filePath);
+        ByteArrayResource resource = new ByteArrayResource(data);
+
+        // Guess the content type based on the file name extension
+        String contentType = URLConnection.guessContentTypeFromName(file.getLocation());
+        if (contentType == null) {
+            contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+        }
+
+        // Set the content type header
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_TYPE, contentType);
+//        headers.add(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + file.getLocation() + "\"");
+
+        // Return the response entity
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentLength(data.length)
+                .body(resource);
     }
 }
