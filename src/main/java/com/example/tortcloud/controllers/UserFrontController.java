@@ -64,4 +64,9 @@ public class UserFrontController {
     public String sharedFolders(@PathVariable String uuid, Model model) {
         return "shared-folders";
     }
+
+    @GetMapping("/shared-files/{id}")
+    public String sharedFiles(@PathVariable String id, Model model) {
+        return "shared-files";
+    }
 }

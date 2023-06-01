@@ -199,6 +199,35 @@
     </div>
 </div>
 <!-- Modal -->
+<div class="modal fade" id="shareFileModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="titleForShareFileLabel">Поделиться файлом</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <p>Доступ: <span id="status-share-file"></span></p>
+                </div>
+                <div>
+                    <div id="notify-share-file"></div>
+                    <label for="shared-link" class="form-label">Ссылка</label>
+                    <input class="form-control" id="shared-link-file" placeholder="Пусто" disabled/>
+                    <button class="mt-3 btn btn-primary w-100" id="copy-clip-file">Скопировать</button>
+                </div>
+                <div id="delete-share-file">
+
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" id="cancel-share-file" disabled>Не делиться</button>
+                <button type="button" class="btn btn-primary" id="submit-share-file" disabled>Поделиться</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal -->
 <div class="modal fade" id="createFolder" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -216,6 +245,28 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
                 <button type="button" class="btn btn-primary" id="createFolderSubmitButton">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal -->
+<div class="modal fade" id="editFile" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="editFileLabel">Редактирование файла</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="error-editFile"></div>
+                <div>
+                    <label for="editFileInput" class="form-label">Название файла</label>
+                    <input type="text" class="form-control" id="editFileInput"/>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn btn-primary" id="editFileSubmitButton">Сохранить</button>
             </div>
         </div>
     </div>
@@ -304,6 +355,24 @@
         </div>
     </div>
 </div>
+<!-- Modal -->
+<div class="modal fade" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true" id="deleteFileModal">
+    <div class="modal-dialog">
+        <div class="modal-content rounded-4 shadow">
+            <div class="modal-header border-bottom-0">
+                <h1 class="modal-title fs-5">Удаление папки</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-0">
+                <p>Вы действительно хотите удалить данный файл?</p>
+            </div>
+            <div class="modal-footer flex-column align-items-stretch w-100 gap-2 pb-3 border-top-0">
+                <button type="button" class="btn btn-lg btn-danger" id="deleteFileButton">Удалить</button>
+                <button type="button" class="btn btn-lg btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
 <hr style="margin: 0px 0px;">
 <footer class="text-center">
     <div class="container text-muted py-4 py-lg-5">
@@ -347,6 +416,30 @@
             <div class="d-flex">
                 <div class="toast-body">
                     Ссылка успешно скопирована
+                </div>
+                <button type="button" class="btn-close-white btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+</div>
+<div>
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div class="toast align-items-center text-bg-success border-0" id="pinFile" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    Вы успешно закрепили файл
+                </div>
+                <button type="button" class="btn-close-white btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+</div>
+<div>
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div class="toast align-items-center text-bg-danger border-0" id="unpinFile" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    Вы успешно открепили файл
                 </div>
                 <button type="button" class="btn-close-white btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>

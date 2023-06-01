@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @OpenAPIDefinition(info=@Info(title="TortCloud",
-        version = "0.4",
+        version = "1.0",
         description = "API облачного хранилища"))
 @SecurityScheme(
         name = "basicAuth",

@@ -25,6 +25,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URLConnection;
 import java.nio.file.Path;
@@ -226,6 +227,7 @@ public class FilesController {
         return ResponseEntity.ok().body("Файлы были удалены");
     }
 
+    @SecurityRequirement(name = "basicAuth")
     @GetMapping("/get_bytes")
     public String getBytesByUser() {
         Users users = userService.getUserFromAuth();
@@ -238,6 +240,7 @@ public class FilesController {
         return bytes.toString();
     }
 
+    @SecurityRequirement(name = "basicAuth")
     @GetMapping("/get_bytes_si")
     public String getBytesByUserSI() {
         Users users = userService.getUserFromAuth();
@@ -250,6 +253,7 @@ public class FilesController {
         return filesService.humanReadableByteCountSI(bytes);
     }
 
+    @SecurityRequirement(name = "basicAuth")
     @GetMapping("/get_bytes_si_by_user")
     public String getBytesByUserStorageSI() {
         Users users = userService.getUserFromAuth();
@@ -257,24 +261,57 @@ public class FilesController {
         return filesService.humanReadableByteCountSI(users.getStorage());
     }
 
+    @SecurityRequirement(name = "basicAuth")
     @GetMapping("/get_files_main")
-    public ResponseEntity<List<Files>> getAllFilesMain() {
+    public ResponseEntity<List<Files>> getAllFilesMain(@RequestParam(required = false) String fileSort) {
         Users users = userService.getUserFromAuth();
 
         Folders mainFolder = foldersRepo.findByNameAndRoot(users.getUsername(), true);
 
+        if(fileSort != null) {
+            if (fileSort.equals("asc")) {
+                return ResponseEntity.ok().body(filesRepo.findByFolderAndInTrashOrderByLocationAsc(mainFolder, false));
+            }
+            if (fileSort.equals("desc")) {
+                return ResponseEntity.ok().body(filesRepo.findByFolderAndInTrashOrderByLocationDesc(mainFolder, false));
+            }
+            if (fileSort.equals("date-asc")) {
+                return ResponseEntity.ok().body(filesRepo.findByFolderAndInTrashOrderByDateCreatedAsc(mainFolder, false));
+            }
+            if (fileSort.equals("date-desc")) {
+                return ResponseEntity.ok().body(filesRepo.findByFolderAndInTrashOrderByDateCreatedDesc(mainFolder, false));
+            }
+        }
+
         return ResponseEntity.ok().body(filesRepo.findByFolderAndInTrash(mainFolder, false));
     }
 
+    @SecurityRequirement(name = "basicAuth")
     @GetMapping("/get_files_folder/{uuid}")
-    public ResponseEntity<List<Files>> getAllFilesFolder(@PathVariable String uuid) {
+    public ResponseEntity<List<Files>> getAllFilesFolder(@PathVariable String uuid, @RequestParam(required = false) String fileSort) {
         Users users = userService.getUserFromAuth();
 
         Folders folder = foldersRepo.findByUuid(uuid);
 
+        if(fileSort != null) {
+            if (fileSort.equals("asc")) {
+                return ResponseEntity.ok().body(filesRepo.findByFolderAndInTrashOrderByLocationAsc(folder, false));
+            }
+            if (fileSort.equals("desc")) {
+                return ResponseEntity.ok().body(filesRepo.findByFolderAndInTrashOrderByLocationDesc(folder, false));
+            }
+            if (fileSort.equals("date-asc")) {
+                return ResponseEntity.ok().body(filesRepo.findByFolderAndInTrashOrderByDateCreatedAsc(folder, false));
+            }
+            if (fileSort.equals("date-desc")) {
+                return ResponseEntity.ok().body(filesRepo.findByFolderAndInTrashOrderByDateCreatedDesc(folder, false));
+            }
+        }
+
         return ResponseEntity.ok().body(filesRepo.findByFolderAndInTrash(folder, false));
     }
 
+    @SecurityRequirement(name = "basicAuth")
     @GetMapping("/get_files_pinned")
     public ResponseEntity<List<Files>> getPinnedFiles() {
         Users users = userService.getUserFromAuth();
@@ -282,6 +319,7 @@ public class FilesController {
         return ResponseEntity.ok().body(filesRepo.findByUsersAndBookmarkAndInTrash(users, true, false));
     }
 
+    @SecurityRequirement(name = "basicAuth")
     @GetMapping("/get_files_trash")
     public ResponseEntity<List<Files>> getTrashFiles() {
         Users users = userService.getUserFromAuth();
@@ -334,5 +372,214 @@ public class FilesController {
                 .headers(headers)
                 .contentLength(data.length)
                 .body(resource);
+    }
+
+    @GetMapping("/download-file")
+    public ResponseEntity<ByteArrayResource> downloadFile(@RequestParam Long id) throws IOException {
+        Files file = filesService.findFileById(id);
+        if (file == null) {
+            throw new FileNotFound("Файл не найден");
+        }
+
+        // Load file from the file system
+        Path filePath = Paths.get(file.getFolder().getPath() + "\\" + file.getLocation());
+        byte[] data = java.nio.file.Files.readAllBytes(filePath);
+        ByteArrayResource resource = new ByteArrayResource(data);
+
+        // Guess the content type based on the file name extension
+        String contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+
+        // Set the content disposition header
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_TYPE, contentType);
+
+        // Return the response entity
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentLength(data.length)
+                .body(resource);
+    }
+
+    @SecurityRequirement(name = "basicAuth")
+    @PutMapping("/pin_file")
+    public ResponseEntity<Files> pinFile(@RequestHeader Long id) {
+        Users users = userService.getUserFromAuth();
+
+        Files file = filesService.findFileById(id);
+        if (file == null) {
+            throw new FileNotFound("Файл не найден");
+        }
+
+        if(!file.getUsers().equals(users)) {
+            throw new InvalidUser("Нельзя изменять файлы других пользователей");
+        }
+
+        file.setBookmark(true);
+        filesRepo.save(file);
+
+        return ResponseEntity.ok().body(file);
+    }
+
+    @SecurityRequirement(name = "basicAuth")
+    @PutMapping("/unpin_file")
+    public ResponseEntity<Files> unpinFile(@RequestHeader Long id) {
+        Users users = userService.getUserFromAuth();
+
+        Files file = filesService.findFileById(id);
+        if (file == null) {
+            throw new FileNotFound("Файл не найден");
+        }
+
+        if(!file.getUsers().equals(users)) {
+            throw new InvalidUser("Нельзя изменять файлы других пользователей");
+        }
+
+        file.setBookmark(false);
+        filesRepo.save(file);
+
+        return ResponseEntity.ok().body(file);
+    }
+
+    @SecurityRequirement(name = "basicAuth")
+    @PutMapping("/update_location")
+    public ResponseEntity<Files> updateLocation(@RequestHeader Long id, @RequestBody String newLocation) {
+        Users users = userService.getUserFromAuth();
+
+        Files file = filesService.findFileById(id);
+        if (file == null) {
+            throw new FileNotFound("Файл не найден");
+        }
+
+        if(!file.getUsers().equals(users)) {
+            throw new InvalidUser("Нельзя изменять файлы других пользователей");
+        }
+
+        List<Files> checkFiles = filesRepo.findByFolder(file.getFolder());
+        String oldLocation = file.getLocation();
+
+        if (newLocation == null || newLocation.isEmpty()) {
+            throw new AccessDenied("Новое название пустое");
+        }
+
+        if (newLocation.matches(".*[.,].*")) {
+            throw new AccessDenied("В тексте не должно быть символов как точка или запятая");
+        }
+
+        String format = file.getLocation().substring(file.getLocation().indexOf("."));
+        file.setLocation(newLocation + format);
+
+        Files checkFile = filesRepo.findByLocationAndFolder(file.getLocation(), file.getFolder());
+        for(Files file1 : checkFiles){
+            if(file1.equals(checkFile)){
+                throw new FileAlreadyExist("Файл " + checkFile.getLocation() + " уже существует в данной папке");
+            }
+        }
+
+        File file2 = new File(file.getFolder().getPath() + "\\" + oldLocation);
+        File newFile = new File(file.getFolder().getPath() + "\\" + file.getLocation());
+        try {
+            FileUtils.moveFile(file2, newFile);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        file.setDateModified(LocalDateTime.now());
+        filesRepo.save(file);
+
+        return ResponseEntity.ok().body(file);
+    }
+
+    @SecurityRequirement(name = "basicAuth")
+    @PutMapping("/share_file")
+    public ResponseEntity<Files> shareFile(@RequestHeader Long id) {
+        Users users = userService.getUserFromAuth();
+
+        Files file = filesService.findFileById(id);
+        if (file == null) {
+            throw new FileNotFound("Файл не найден");
+        }
+
+        if(!file.getUsers().equals(users)) {
+            throw new InvalidUser("Нельзя изменять файлы других пользователей");
+        }
+
+        file.setShared(true);
+        filesRepo.save(file);
+
+        return ResponseEntity.ok().body(file);
+    }
+
+    @SecurityRequirement(name = "basicAuth")
+    @PutMapping("/share_file_false")
+    public ResponseEntity<Files> shareFileFalse(@RequestHeader Long id) {
+        Users users = userService.getUserFromAuth();
+
+        Files file = filesService.findFileById(id);
+        if (file == null) {
+            throw new FileNotFound("Файл не найден");
+        }
+
+        if(!file.getUsers().equals(users)) {
+            throw new InvalidUser("Нельзя изменять файлы других пользователей");
+        }
+
+        file.setShared(false);
+        filesRepo.save(file);
+
+        return ResponseEntity.ok().body(file);
+    }
+
+    @GetMapping("/get_shared_file")
+    public ResponseEntity<Files> getSharedFile(@RequestParam Long id) {
+        Files file = filesService.findFileById(id);
+        if (file == null) {
+            throw new FileNotFound("Файл не найден");
+        }
+
+        if (!file.isShared()) {
+            throw new AccessDenied("Файл запрещен для просмотра");
+        }
+
+        return ResponseEntity.ok().body(file);
+    }
+
+    @SecurityRequirement(name = "basicAuth")
+    @PutMapping("/file_to_trash")
+    public ResponseEntity<Files> fileToTrash(@RequestHeader Long id) {
+        Users users = userService.getUserFromAuth();
+
+        Files file = filesService.findFileById(id);
+        if (file == null) {
+            throw new FileNotFound("Файл не найден");
+        }
+
+        if(!file.getUsers().equals(users)) {
+            throw new InvalidUser("Нельзя изменять файлы других пользователей");
+        }
+
+        file.setInTrash(true);
+        filesRepo.save(file);
+
+        return ResponseEntity.ok().body(file);
+    }
+
+    @SecurityRequirement(name = "basicAuth")
+    @PutMapping("/return_file")
+    public ResponseEntity<Files> returnFileFromTrash(@RequestHeader Long id) {
+        Users users = userService.getUserFromAuth();
+
+        Files file = filesService.findFileById(id);
+        if (file == null) {
+            throw new FileNotFound("Файл не найден");
+        }
+
+        if(!file.getUsers().equals(users)) {
+            throw new InvalidUser("Нельзя изменять файлы других пользователей");
+        }
+
+        file.setInTrash(false);
+        filesRepo.save(file);
+
+        return ResponseEntity.ok().body(file);
     }
 }

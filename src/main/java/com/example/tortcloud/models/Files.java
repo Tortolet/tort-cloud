@@ -42,6 +42,8 @@ public class Files {
 
     private boolean bookmark;
 
+    private boolean shared;
+
     private LocalDateTime dateCreated;
 
     private LocalDateTime dateModified;
@@ -138,5 +140,13 @@ public class Files {
 
     public void setSize(Long size) {
         this.size = size;
+    }
+
+    public boolean isShared() {
+        return shared;
+    }
+
+    public void setShared(boolean shared) {
+        this.shared = shared;
     }
 }

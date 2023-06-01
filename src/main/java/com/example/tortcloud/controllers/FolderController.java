@@ -98,6 +98,7 @@ public class FolderController {
         return ResponseEntity.ok().body(foldersRepo.findByFoldersAndInTrash(mainFolder, false));
     }
 
+    @SecurityRequirement(name = "basicAuth")
     @GetMapping("/get_folders_in_trash")
     public ResponseEntity<List<Folders>> getAllFoldersInTrash() {
         Users users = userService.getUserFromAuth();
@@ -105,6 +106,7 @@ public class FolderController {
         return ResponseEntity.ok().body(foldersRepo.findByUsersAndInTrash(users, true));
     }
 
+    @SecurityRequirement(name = "basicAuth")
     @GetMapping("/get_folders_pinned")
     public ResponseEntity<List<Folders>> getAllFoldersInPinPage() {
         Users users = userService.getUserFromAuth();
@@ -112,6 +114,7 @@ public class FolderController {
         return ResponseEntity.ok().body(foldersRepo.findByUsersAndBookmarkAndInTrash(users, true, false));
     }
 
+    @SecurityRequirement(name = "basicAuth")
     @GetMapping("/get_folders_uuid/{uuid}")
     public ResponseEntity<List<Folders>> getAllFoldersByFolder(@PathVariable String uuid, @RequestParam(required = false) String folderSort) {
         Users users = userService.getUserFromAuth();
@@ -229,6 +232,7 @@ public class FolderController {
         return ResponseEntity.ok().body(folder);
     }
 
+    @SecurityRequirement(name = "basicAuth")
     @GetMapping("/get_folder_main_uuid")
     public ResponseEntity<Folders> getFolderMain() {
         Users users = userService.getUserFromAuth();
@@ -238,6 +242,7 @@ public class FolderController {
         return ResponseEntity.ok().body(mainFolder);
     }
 
+    @SecurityRequirement(name = "basicAuth")
     @PutMapping("/pin_folder/{uuid}")
     public String pinFolder(@PathVariable String uuid) {
         Users users = userService.getUserFromAuth();
@@ -250,6 +255,7 @@ public class FolderController {
         return "Папка с названием " + folder.getName() + " была закреплена";
     }
 
+    @SecurityRequirement(name = "basicAuth")
     @PutMapping("/unpin_folder/{uuid}")
     public String unpinFolder(@PathVariable String uuid) {
         Users users = userService.getUserFromAuth();
@@ -262,6 +268,7 @@ public class FolderController {
         return "Папка с названием " + folder.getName() + " была откреплена";
     }
 
+    @SecurityRequirement(name = "basicAuth")
     @PutMapping("/share_folder/{uuid}")
     public String shareFolder(@PathVariable String uuid) {
         Users users = userService.getUserFromAuth();
@@ -274,6 +281,7 @@ public class FolderController {
         return "Папка с названием " + folder.getName() + " была поделена";
     }
 
+    @SecurityRequirement(name = "basicAuth")
     @PutMapping("/unshared_folder/{uuid}")
     public String unShareFolder(@PathVariable String uuid) {
         Users users = userService.getUserFromAuth();
@@ -345,6 +353,7 @@ public class FolderController {
         return ResponseEntity.ok().body("Успешно удалено");
     }
 
+    @SecurityRequirement(name = "basicAuth")
     @PutMapping ("/folder_to_trash")
     public ResponseEntity<Folders> updateFolderToDeleteFolder(@RequestHeader Long folderId){
         Users users = userService.getUserFromAuth();
@@ -368,6 +377,7 @@ public class FolderController {
         return ResponseEntity.ok().body(folders);
     }
 
+    @SecurityRequirement(name = "basicAuth")
     @PutMapping ("/return_folder")
     public ResponseEntity<Folders> returnFolder(@RequestHeader Long folderId){
         Users users = userService.getUserFromAuth();
@@ -474,6 +484,7 @@ public class FolderController {
                 .body(resource);
     }
 
+    @SecurityRequirement(name = "basicAuth")
     @PutMapping("/edit_folder_name")
     public ResponseEntity<Folders> editFolderName(@RequestBody Folders name, @RequestHeader String uuid){
         Users users = userService.getUserFromAuth();
@@ -502,6 +513,7 @@ public class FolderController {
         return ResponseEntity.ok().body(folder);
     }
 
+    @SecurityRequirement(name = "basicAuth")
     @PostMapping("/add_folders")
     public ResponseEntity<String> addNewFoldersWithFiles(@RequestHeader String folderUUID, @RequestBody MultipartFile[] files) {
         Users users = userService.getUserFromAuth();
@@ -621,6 +633,7 @@ public class FolderController {
         return ResponseEntity.ok().body("OK");
     }
 
+    @SecurityRequirement(name = "basicAuth")
     @GetMapping("/get_all_path")
     public ResponseEntity<List<Folders>> getAllPath(@RequestHeader String uuid) {
         Users users = userService.getUserFromAuth();
@@ -659,5 +672,14 @@ public class FolderController {
 
 
         return ResponseEntity.ok().body(foldersList);
+    }
+
+    @GetMapping("/get_folder_path_for_js")
+    public String path(@RequestParam Long id) {
+        Folders folder = folderService.findFolderById(id);
+
+        String path = folder.getPath();
+
+        return path.replace("\\", "\\\\");
     }
 }

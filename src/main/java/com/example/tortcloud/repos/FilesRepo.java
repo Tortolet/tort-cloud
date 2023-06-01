@@ -22,6 +22,14 @@ public interface FilesRepo extends JpaRepository<Files, Long> {
 
     List<Files> findByUsersAndInTrash(Users users, boolean inTrash);
 
+    List<Files> findByFolderAndInTrashOrderByLocationAsc(Folders folders, boolean inTrash);
+
+    List<Files> findByFolderAndInTrashOrderByLocationDesc(Folders folders, boolean inTrash);
+
+    List<Files> findByFolderAndInTrashOrderByDateCreatedAsc(Folders folders, boolean inTrash);
+
+    List<Files> findByFolderAndInTrashOrderByDateCreatedDesc(Folders folders, boolean inTrash);
+
     @Query("select sum(f.size) from Files f where f.users = ?1")
     Long findByUsers(Users users);
 

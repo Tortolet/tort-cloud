@@ -27,6 +27,33 @@ function download(uuid, nameZip) {
     xhr.send();
 }
 
+function downloadFile(id, customName) {
+    // Create AJAX request
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', '/api/download-file?id=' + encodeURIComponent(id), true);
+    xhr.responseType = 'blob';
+
+    // Handle AJAX response
+    xhr.onload = function () {
+        if (xhr.status === 200) {
+            // Create blob URL from response data
+            const blob = new Blob([xhr.response], {type: xhr.getResponseHeader('Content-Type')});
+            const url = window.URL.createObjectURL(blob);
+
+            // Open file in new tab with custom file name
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', customName);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    };
+
+    // Send AJAX request
+    xhr.send();
+}
+
 function viewFile(id, customFileName) {
     let filename = transliterate(customFileName)
 
@@ -221,13 +248,8 @@ fetch('http://localhost:8080/api/get_files_shared/' + uuid)
                         `<div class="col-sm-12 col-md-4 col-lg-3">
                                     <div class="card border">
                                         <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
-                                            <li><a class="dropdown-item download-button-file" href="#">Загрузить</a></li>
-                                            <li><a class="dropdown-item pin-folder-file" href="#" id="${data[i].id}">Закрепить</a></li>
-                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFolderName">Редактировать</a></li>
-                                            <li><a class="dropdown-item" href="#">Выбрать</a></li>
-                                            <li><a class="dropdown-item" href="#">Поделиться</a></li>
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
                                             <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
-                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFolderModal">Удалить</a></li>
                                         </ul></div></div><div class="icon"><i class="fas fa-solid fa-table" style="color: #158a3c;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location}</p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
                                     </div>
                                 </div>`
@@ -237,13 +259,8 @@ fetch('http://localhost:8080/api/get_files_shared/' + uuid)
                         `<div class="col-sm-12 col-md-4 col-lg-3">
                                     <div class="card border">
                                         <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
-                                            <li><a class="dropdown-item download-button-file" href="#">Загрузить</a></li>
-                                            <li><a class="dropdown-item pin-folder-file" href="#" id="${data[i].id}">Закрепить</a></li>
-                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFolderName">Редактировать</a></li>
-                                            <li><a class="dropdown-item" href="#">Выбрать</a></li>
-                                            <li><a class="dropdown-item" href="#">Поделиться</a></li>
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
                                             <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
-                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFolderModal">Удалить</a></li>
                                         </ul></div></div><div class="icon"><i class="fas fa-solid fa-file-image" style="color: #15328a;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location}</p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
                                     </div>
                                 </div>`
@@ -253,13 +270,8 @@ fetch('http://localhost:8080/api/get_files_shared/' + uuid)
                         `<div class="col-sm-12 col-md-4 col-lg-3">
                                     <div class="card border">
                                         <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
-                                            <li><a class="dropdown-item download-button-file" href="#">Загрузить</a></li>
-                                            <li><a class="dropdown-item pin-folder-file" href="#" id="${data[i].id}">Закрепить</a></li>
-                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFolderName">Редактировать</a></li>
-                                            <li><a class="dropdown-item" href="#">Выбрать</a></li>
-                                            <li><a class="dropdown-item" href="#">Поделиться</a></li>
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
                                             <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
-                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFolderModal">Удалить</a></li>
                                         </ul></div></div><div class="icon"><i class="fas fa-solid fa-file-video" style="color: #8a1515;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location}</p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
                                     </div>
                                 </div>`
@@ -269,13 +281,8 @@ fetch('http://localhost:8080/api/get_files_shared/' + uuid)
                         `<div class="col-sm-12 col-md-4 col-lg-3">
                                     <div class="card border">
                                         <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
-                                            <li><a class="dropdown-item download-button-file" href="#">Загрузить</a></li>
-                                            <li><a class="dropdown-item pin-folder-file" href="#" id="${data[i].id}">Закрепить</a></li>
-                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFolderName">Редактировать</a></li>
-                                            <li><a class="dropdown-item" href="#">Выбрать</a></li>
-                                            <li><a class="dropdown-item" href="#">Поделиться</a></li>
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
                                             <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
-                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFolderModal">Удалить</a></li>
                                         </ul></div></div><div class="icon"><i class="fas fa-solid fa-file-audio" style="color: #adcd0e;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location}</p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
                                     </div>
                                 </div>`
@@ -285,13 +292,8 @@ fetch('http://localhost:8080/api/get_files_shared/' + uuid)
                         `<div class="col-sm-12 col-md-4 col-lg-3">
                                     <div class="card border">
                                         <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
-                                            <li><a class="dropdown-item download-button-file" href="#">Загрузить</a></li>
-                                            <li><a class="dropdown-item pin-folder-file" href="#" id="${data[i].id}">Закрепить</a></li>
-                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFolderName">Редактировать</a></li>
-                                            <li><a class="dropdown-item" href="#">Выбрать</a></li>
-                                            <li><a class="dropdown-item" href="#">Поделиться</a></li>
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
                                             <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
-                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFolderModal">Удалить</a></li>
                                         </ul></div></div><div class="icon"><i class="fas fa-solid fa-file-code" style="color: #158a7c;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location}</p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
                                     </div>
                                 </div>`
@@ -301,13 +303,8 @@ fetch('http://localhost:8080/api/get_files_shared/' + uuid)
                         `<div class="col-sm-12 col-md-4 col-lg-3">
                                     <div class="card border">
                                         <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
-                                            <li><a class="dropdown-item download-button-file" href="#">Загрузить</a></li>
-                                            <li><a class="dropdown-item pin-folder-file" href="#" id="${data[i].id}">Закрепить</a></li>
-                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFolderName">Редактировать</a></li>
-                                            <li><a class="dropdown-item" href="#">Выбрать</a></li>
-                                            <li><a class="dropdown-item" href="#">Поделиться</a></li>
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
                                             <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
-                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFolderModal">Удалить</a></li>
                                         </ul></div></div><div class="icon"><i class="fas fa-solid fa-file"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location}</p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
                                     </div>
                                 </div>`
@@ -321,6 +318,56 @@ fetch('http://localhost:8080/api/get_files_shared/' + uuid)
                         let size = document.getElementById('size-' + data[i].id)
                         size.textContent += `${bytes}`
                     })
+            }
+            const infoButton = document.querySelectorAll('.info-folder-file')
+            for (let j = 0; j < data.length; j++) {
+                infoButton[j]?.addEventListener("click", function () {
+                    let infoDateFile = data[j].dateCreated.slice(0, 10)
+                    let infoDayFile = infoDateFile.slice(8, 10)
+                    let infoMonthFile = infoDateFile.slice(5, 7)
+                    let infoYearFile = infoDateFile.slice(0, 4)
+                    let infoTimeFile = data[j].dateCreated.slice(11, data[j].dateCreated.length - 7)
+
+                    let infoDateModifiedFile = data[j].dateModified.slice(0, 10)
+                    let infoDayModifiedFile = infoDateModifiedFile.slice(8, 10)
+                    let infoMonthModifiedFile = infoDateModifiedFile.slice(5, 7)
+                    let infoYearModifiedFile = infoDateModifiedFile.slice(0, 4)
+                    let infoTimeModifiedFile = data[j].dateModified.slice(11, data[j].dateModified.length - 7)
+
+                    let infoNameFile = data[j].location
+                    let infoSizeFile = document.getElementById('size-' + data[j].id)
+                    let infoUserFile = data[j].users.username
+                    let infoDateCreatedFile = infoDayFile + '.' + infoMonthFile + '.' + infoYearFile + ' ' + infoTimeFile
+                    let infoDateModFile = infoDayModifiedFile + '.' + infoMonthModifiedFile + '.' + infoYearModifiedFile + ' ' + infoTimeModifiedFile
+                    let infoPinFile = data[j].bookmark
+
+                    const infoNameFolder = document.getElementById('infoNameFolder')
+                    const infoSizeFolder = document.getElementById('infoSizeFolder')
+                    const infoUserFolder = document.getElementById('infoUserFolder')
+                    const infoDateFolder = document.getElementById('infoDateFolder')
+                    const infoDateModFolder = document.getElementById('infoDateModFolder')
+                    const infoBookmarkFolder = document.getElementById('infoBookmarkFolder')
+                    const infoBookmarkFolderTrueFalse = document.getElementById('infoBookmarkFolderTrueFalse')
+
+                    if(infoPinFile) {
+                        infoPinFile = 'Да'
+                        infoBookmarkFolderTrueFalse.classList.remove('text-danger')
+                        infoBookmarkFolderTrueFalse.classList.add('text-success')
+                    }
+                    if(!infoPinFile) {
+                        infoPinFile = 'Нет'
+                        infoBookmarkFolderTrueFalse.classList.remove('text-success')
+                        infoBookmarkFolderTrueFalse.classList.add('text-danger')
+                    }
+
+                    infoNameFolder.textContent = 'Название: ' + infoNameFile
+                    infoSizeFolder.textContent = infoSizeFile.textContent
+                    infoUserFolder.textContent = 'Владелец: ' + infoUserFile
+                    infoDateFolder.textContent = 'Дата создания: ' + infoDateCreatedFile
+                    infoDateModFolder.textContent = 'Дата изменения: ' + infoDateModFile
+                    infoBookmarkFolder.textContent = 'Закреплено: '
+                    infoBookmarkFolderTrueFalse.textContent = infoPinFile
+                }, true);
             }
         }
     })

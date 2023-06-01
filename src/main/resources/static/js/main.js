@@ -12,8 +12,21 @@ if(localStorage.getItem("pinnedFolder") === "false"){
     toast.show()
 }
 
+if(localStorage.getItem("pinnedFile") === "true"){
+    const toastLive = document.getElementById('pinFile')
+    const toast = new bootstrap.Toast(toastLive)
+    toast.show()
+}
+
+if(localStorage.getItem("pinnedFile") === "false"){
+    const toastLive = document.getElementById('unpinFile')
+    const toast = new bootstrap.Toast(toastLive)
+    toast.show()
+}
+
 localStorage.removeItem("count");
 localStorage.removeItem("pinnedFolder");
+localStorage.removeItem("pinnedFile");
 
 function success() {
     document.getElementById('submitButton').disabled = document.getElementById("editingNameFolder").value === "";
@@ -417,6 +430,36 @@ function editFolderName(uuidModal) {
         })
 }
 
+function editFileName(id) {
+    fetch('http://localhost:8080/api/update_location', {
+        method: 'PUT',
+        headers: {
+            'Accept': '*/*',
+            'Content-Type': 'plain/text',
+            'id': id
+        },
+        body: document.getElementById('editFileInput').value
+    })
+        .then(response => {
+            if (!response.ok) {
+                return response.text().then(text => {
+                    throw Error(text)
+                })
+            }
+            return response.json()
+        })
+        .then(data => {
+            location.reload()
+        })
+        .catch(response => {
+            let error = JSON.parse(response.message);
+            console.log(`Тест: ${error.message}`);
+
+            const errorModal = document.getElementById('error-editFile')
+            errorModal.innerHTML = `<div class="alert alert-danger">${error.message}</div>`
+        })
+}
+
 function deleteFolder(folderId) {
     fetch('http://localhost:8080/api/folder_to_trash', {
         method: 'PUT',
@@ -424,6 +467,31 @@ function deleteFolder(folderId) {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
             'folderId': folderId
+        }
+    })
+        .then(response => {
+            if (!response.ok) {
+                return response.text().then(text => {
+                    throw Error(text)
+                })
+            }
+            return response.json()
+        })
+        .then(data => {
+            location.reload()
+        })
+        .catch(response => {
+            console.log('Ошибка удаления папки')
+        })
+}
+
+function deleteFile(fileId) {
+    fetch('http://localhost:8080/api/file_to_trash', {
+        method: 'PUT',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'id': fileId
         }
     })
         .then(response => {
@@ -456,6 +524,38 @@ function pinFolder(uuid) {
     location.reload()
 }
 
+function pinFile(id) {
+    fetch('http://localhost:8080/api/pin_file', {
+        method: 'PUT',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'id': id
+        }
+    })
+        .then(response => {
+            return response.json()
+        })
+    localStorage.setItem("pinnedFile", "true")
+    location.reload()
+}
+
+function unpinFile(id) {
+    fetch('http://localhost:8080/api/unpin_file', {
+        method: 'PUT',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'id': id
+        }
+    })
+        .then(response => {
+            return response.json()
+        })
+    localStorage.setItem("pinnedFile", "false")
+    location.reload()
+}
+
 function download(uuid, nameZip) {
     // Create AJAX request
     const xhr = new XMLHttpRequest();
@@ -473,6 +573,33 @@ function download(uuid, nameZip) {
             const link = document.createElement('a');
             link.href = url;
             link.setAttribute('download', nameZip);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    };
+
+    // Send AJAX request
+    xhr.send();
+}
+
+function downloadFile(id, customName) {
+    // Create AJAX request
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', '/api/download-file?id=' + encodeURIComponent(id), true);
+    xhr.responseType = 'blob';
+
+    // Handle AJAX response
+    xhr.onload = function () {
+        if (xhr.status === 200) {
+            // Create blob URL from response data
+            const blob = new Blob([xhr.response], {type: xhr.getResponseHeader('Content-Type')});
+            const url = window.URL.createObjectURL(blob);
+
+            // Open file in new tab with custom file name
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', customName);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -516,6 +643,34 @@ function unShareFolder(uuid) {
         headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
+        }
+    })
+        .then(response => {
+            return response.text()
+        })
+}
+
+function shareFile(id) {
+    fetch('http://localhost:8080/api/share_file', {
+        method: 'PUT',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'id': id
+        }
+    })
+        .then(response => {
+            return response.text()
+        })
+}
+
+function unShareFile(id) {
+    fetch('http://localhost:8080/api/share_file_false', {
+        method: 'PUT',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'id': id
         }
     })
         .then(response => {
@@ -675,7 +830,6 @@ function getFolders() {
                                             <li><a class="dropdown-item download-button" href="#">Загрузить</a></li>
                                             <li><a class="dropdown-item pin-folder" href="#" id="${data[i].uuid}">Закрепить</a></li>
                                             <li><a class="dropdown-item edit-folder" href="#" data-bs-toggle="modal" data-bs-target="#editFolderName">Редактировать</a></li>
-                                            <li><a class="dropdown-item" href="#">Выбрать</a></li>
                                             <li><a class="dropdown-item share-folder" href="#" data-bs-toggle="modal" data-bs-target="#shareModal">Поделиться</a></li>
                                             <li><a class="dropdown-item info-folder" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
                                             <li><a class="dropdown-item text-danger delete-folder" href="#" data-bs-toggle="modal" data-bs-target="#deleteFolderModal">Удалить</a></li>
@@ -691,7 +845,6 @@ function getFolders() {
                                             <li><a class="dropdown-item download-button" href="#">Загрузить</a></li>
                                             <li><a class="dropdown-item unpin-folder" href="#" id="${data[i].uuid}">Открепить</a></li>
                                             <li><a class="dropdown-item edit-folder" href="#" data-bs-toggle="modal" data-bs-target="#editFolderName">Редактировать</a></li>
-                                            <li><a class="dropdown-item" href="#">Выбрать</a></li>
                                             <li><a class="dropdown-item share-folder" href="#" data-bs-toggle="modal" data-bs-target="#shareModal">Поделиться</a></li>
                                             <li><a class="dropdown-item info-folder" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
                                             <li><a class="dropdown-item text-danger delete-folder" href="#" data-bs-toggle="modal" data-bs-target="#deleteFolderModal">Удалить</a></li>
@@ -861,6 +1014,7 @@ function getFolders() {
     }
 
     if(folderSort === null) {
+
         fetch('http://localhost:8080/api/get_folders_main')
             .then(response => {
                 if(!response.ok) {
@@ -890,7 +1044,6 @@ function getFolders() {
                                             <li><a class="dropdown-item download-button" href="#">Загрузить</a></li>
                                             <li><a class="dropdown-item pin-folder" href="#" id="${data[i].uuid}">Закрепить</a></li>
                                             <li><a class="dropdown-item edit-folder" href="#" data-bs-toggle="modal" data-bs-target="#editFolderName">Редактировать</a></li>
-                                            <li><a class="dropdown-item" href="#">Выбрать</a></li>
                                             <li><a class="dropdown-item share-folder" href="#" data-bs-toggle="modal" data-bs-target="#shareModal">Поделиться</a></li>
                                             <li><a class="dropdown-item info-folder" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
                                             <li><a class="dropdown-item text-danger delete-folder" href="#" data-bs-toggle="modal" data-bs-target="#deleteFolderModal">Удалить</a></li>
@@ -906,7 +1059,6 @@ function getFolders() {
                                             <li><a class="dropdown-item download-button" href="#">Загрузить</a></li>
                                             <li><a class="dropdown-item unpin-folder" href="#" id="${data[i].uuid}">Открепить</a></li>
                                             <li><a class="dropdown-item edit-folder" href="#" data-bs-toggle="modal" data-bs-target="#editFolderName">Редактировать</a></li>
-                                            <li><a class="dropdown-item" href="#">Выбрать</a></li>
                                             <li><a class="dropdown-item share-folder" href="#" data-bs-toggle="modal" data-bs-target="#shareModal">Поделиться</a></li>
                                             <li><a class="dropdown-item info-folder" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
                                             <li><a class="dropdown-item text-danger delete-folder" href="#" data-bs-toggle="modal" data-bs-target="#deleteFolderModal">Удалить</a></li>
@@ -1078,232 +1230,737 @@ function getFolders() {
 }
 
 function getFiles() {
-    fetch('http://localhost:8080/api/get_files_main')
-        .then(response => {
-            if(!response.ok) {
-                return response.text().then(text => {throw Error(text)})
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log(data)
-            const fileContent = document.getElementById('filesContent')
-            const fileCount = document.getElementById('filesCount')
-            fileCount.textContent += ` (${data.length})`
+    const queryString = window.location.search;
+    const urlParams = new URLSearchParams(queryString);
+    const fileSort = urlParams.get('fileSort')
 
-            if (data.length > 0) {
-                for (let i = 0; i < data.length; i++) {
-                    let date = data[i].dateCreated.slice(0, 10)
-                    let day = date.slice(8, 10)
-                    let month = date.slice(5, 7)
-                    let year = date.slice(0, 4)
-                    if(data[i].bookmark === false) {
-                        if(data[i].location.includes('.xls')) {
-                            fileContent.innerHTML +=
-                                `<div class="col-sm-12 col-md-4 col-lg-3">
+    const sortButton = document.getElementById('name-sort-file')
+    sortButton.classList.remove('active')
+    sortButton?.addEventListener("click", function () {
+        window.location = URL + 'main?fileSort=asc'
+    }, true);
+
+    const defaultSortButton = document.getElementById('default-sort-file')
+    defaultSortButton.classList.remove('active')
+    defaultSortButton?.addEventListener("click", function () {
+        window.location = URL + 'main'
+    }, true);
+
+    const dateSortButton = document.getElementById('date-sort-file')
+    dateSortButton.classList.remove('active')
+    dateSortButton?.addEventListener("click", function () {
+        window.location = URL + 'main?fileSort=date-asc'
+    }, true);
+
+    if (fileSort !== null) {
+        if (fileSort !== "asc" && fileSort !== "desc" && fileSort !== "date-asc" && fileSort !== "date-desc") {
+            window.location = URL + '404'
+        }
+
+        if (fileSort === "asc") {
+            sortButton.classList.add('active')
+            sortButton?.addEventListener("click", function () {
+                window.location = URL + 'main?fileSort=desc'
+            }, true);
+        }
+        if (fileSort === "desc") {
+            sortButton.classList.add('active')
+            sortButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-sort-alpha-down-alt" viewBox="0 0 16 16">
+                                        <path d="M12.96 7H9.028v-.691l2.579-3.72v-.054H9.098v-.867h3.785v.691l-2.567 3.72v.054h2.645V7z"/>
+                                        <path fill-rule="evenodd" d="M10.082 12.629 9.664 14H8.598l1.789-5.332h1.234L13.402 14h-1.12l-.419-1.371h-1.781zm1.57-.785L11 9.688h-.047l-.652 2.156h1.351z"/>
+                                        <path d="M4.5 2.5a.5.5 0 0 0-1 0v9.793l-1.146-1.147a.5.5 0 0 0-.708.708l2 1.999.007.007a.497.497 0 0 0 .7-.006l2-2a.5.5 0 0 0-.707-.708L4.5 12.293V2.5z"/>
+                                    </svg>`
+            sortButton?.addEventListener("click", function () {
+                window.location = URL + 'main?fileSort=asc'
+            }, true);
+        }
+
+        if (fileSort === "date-asc") {
+            dateSortButton.classList.add('active')
+            dateSortButton?.addEventListener("click", function () {
+                window.location = URL + 'main?fileSort=date-desc'
+            }, true);
+        }
+        if (fileSort === "date-desc") {
+            dateSortButton.classList.add('active')
+            dateSortButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-sort-numeric-down-alt" viewBox="0 0 16 16">
+                                          <path fill-rule="evenodd" d="M11.36 7.098c-1.137 0-1.708-.657-1.762-1.278h1.004c.058.223.343.45.773.45.824 0 1.164-.829 1.133-1.856h-.059c-.148.39-.57.742-1.261.742-.91 0-1.72-.613-1.72-1.758 0-1.148.848-1.836 1.973-1.836 1.09 0 2.063.637 2.063 2.688 0 1.867-.723 2.848-2.145 2.848zm.062-2.735c.504 0 .933-.336.933-.972 0-.633-.398-1.008-.94-1.008-.52 0-.927.375-.927 1 0 .64.418.98.934.98z"/>
+                                          <path d="M12.438 8.668V14H11.39V9.684h-.051l-1.211.859v-.969l1.262-.906h1.046zM4.5 2.5a.5.5 0 0 0-1 0v9.793l-1.146-1.147a.5.5 0 0 0-.708.708l2 1.999.007.007a.497.497 0 0 0 .7-.006l2-2a.5.5 0 0 0-.707-.708L4.5 12.293V2.5z"/>
+                                        </svg>`
+            dateSortButton?.addEventListener("click", function () {
+                window.location = URL + 'main?fileSort=date-asc'
+            }, true);
+        }
+
+        fetch('http://localhost:8080/api/get_files_main' + '?fileSort=' + fileSort)
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        throw Error(text)
+                    })
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log(data)
+                const fileContent = document.getElementById('filesContent')
+                const fileCount = document.getElementById('filesCount')
+                fileCount.textContent += ` (${data.length})`
+
+                if (data.length > 0) {
+                    for (let i = 0; i < data.length; i++) {
+                        let date = data[i].dateCreated.slice(0, 10)
+                        let day = date.slice(8, 10)
+                        let month = date.slice(5, 7)
+                        let year = date.slice(0, 4)
+                        if (data[i].bookmark === false) {
+                            if (data[i].location.includes('.xls')) {
+                                fileContent.innerHTML +=
+                                    `<div class="col-sm-12 col-md-4 col-lg-3">
                                     <div class="card border">
                                         <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
-                                            <li><a class="dropdown-item download-button-file" href="#">Загрузить</a></li>
-                                            <li><a class="dropdown-item pin-folder-file" href="#" id="${data[i].id}">Закрепить</a></li>
-                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFolderName">Редактировать</a></li>
-                                            <li><a class="dropdown-item" href="#">Выбрать</a></li>
-                                            <li><a class="dropdown-item" href="#">Поделиться</a></li>
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
+                                            <li><a class="dropdown-item pin-folder-file" href="javascript:void(0);" id="${data[i].id}" onclick="pinFile(${data[i].id})">Закрепить</a></li>
+                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFile">Редактировать</a></li>
+                                            <li><a class="dropdown-item share-file" href="#" data-bs-toggle="modal" data-bs-target="#shareFileModal">Поделиться</a></li>
                                             <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
-                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFolderModal">Удалить</a></li>
+                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFileModal">Удалить</a></li>
                                         </ul></div></div><div class="icon"><i class="fas fa-solid fa-table" style="color: #158a3c;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location}</p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
                                     </div>
                                 </div>`
-                        }
-                        if(data[i].location.includes('.png') || data[i].location.includes('.jpg') || data[i].location.includes('.heic')) {
-                            fileContent.innerHTML +=
-                                `<div class="col-sm-12 col-md-4 col-lg-3">
+                            }
+                            if (data[i].location.includes('.png') || data[i].location.includes('.jpg') || data[i].location.includes('.heic')) {
+                                fileContent.innerHTML +=
+                                    `<div class="col-sm-12 col-md-4 col-lg-3">
                                     <div class="card border">
                                         <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
-                                            <li><a class="dropdown-item download-button-file" href="#">Загрузить</a></li>
-                                            <li><a class="dropdown-item pin-folder-file" href="#" id="${data[i].id}">Закрепить</a></li>
-                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFolderName">Редактировать</a></li>
-                                            <li><a class="dropdown-item" href="#">Выбрать</a></li>
-                                            <li><a class="dropdown-item" href="#">Поделиться</a></li>
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
+                                            <li><a class="dropdown-item pin-folder-file" href="javascript:void(0);" id="${data[i].id}" onclick="pinFile(${data[i].id})">Закрепить</a></li>
+                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFile">Редактировать</a></li>
+                                            <li><a class="dropdown-item share-file" data-bs-toggle="modal" data-bs-target="#shareFileModal">Поделиться</a></li>
                                             <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
-                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFolderModal">Удалить</a></li>
+                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFileModal">Удалить</a></li>
                                         </ul></div></div><div class="icon"><i class="fas fa-solid fa-file-image" style="color: #15328a;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location}</p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
                                     </div>
                                 </div>`
-                        }
-                        if(data[i].location.includes('.mp4') || data[i].location.includes('.wav')) {
-                            fileContent.innerHTML +=
-                                `<div class="col-sm-12 col-md-4 col-lg-3">
+                            }
+                            if (data[i].location.includes('.mp4') || data[i].location.includes('.wav')) {
+                                fileContent.innerHTML +=
+                                    `<div class="col-sm-12 col-md-4 col-lg-3">
                                     <div class="card border">
                                         <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
-                                            <li><a class="dropdown-item download-button-file" href="#">Загрузить</a></li>
-                                            <li><a class="dropdown-item pin-folder-file" href="#" id="${data[i].id}">Закрепить</a></li>
-                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFolderName">Редактировать</a></li>
-                                            <li><a class="dropdown-item" href="#">Выбрать</a></li>
-                                            <li><a class="dropdown-item" href="#">Поделиться</a></li>
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
+                                            <li><a class="dropdown-item pin-folder-file" href="javascript:void(0);" id="${data[i].id}" onclick="pinFile(${data[i].id})">Закрепить</a></li>
+                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFile">Редактировать</a></li>
+                                            <li><a class="dropdown-item share-file" data-bs-toggle="modal" data-bs-target="#shareFileModal">Поделиться</a></li>
                                             <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
-                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFolderModal">Удалить</a></li>
+                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFileModal">Удалить</a></li>
                                         </ul></div></div><div class="icon"><i class="fas fa-solid fa-file-video" style="color: #8a1515;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location}</p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
                                     </div>
                                 </div>`
-                        }
-                        if(data[i].location.includes('.mp3')) {
-                            fileContent.innerHTML +=
-                                `<div class="col-sm-12 col-md-4 col-lg-3">
+                            }
+                            if (data[i].location.includes('.mp3')) {
+                                fileContent.innerHTML +=
+                                    `<div class="col-sm-12 col-md-4 col-lg-3">
                                     <div class="card border">
                                         <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
-                                            <li><a class="dropdown-item download-button-file" href="#">Загрузить</a></li>
-                                            <li><a class="dropdown-item pin-folder-file" href="#" id="${data[i].id}">Закрепить</a></li>
-                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFolderName">Редактировать</a></li>
-                                            <li><a class="dropdown-item" href="#">Выбрать</a></li>
-                                            <li><a class="dropdown-item" href="#">Поделиться</a></li>
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
+                                            <li><a class="dropdown-item pin-folder-file" href="javascript:void(0);" id="${data[i].id}" onclick="pinFile(${data[i].id})">Закрепить</a></li>
+                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFile">Редактировать</a></li>
+                                            <li><a class="dropdown-item share-file" data-bs-toggle="modal" data-bs-target="#shareFileModal">Поделиться</a></li>
                                             <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
-                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFolderModal">Удалить</a></li>
+                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFileModal">Удалить</a></li>
                                         </ul></div></div><div class="icon"><i class="fas fa-solid fa-file-audio" style="color: #adcd0e;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location}</p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
                                     </div>
                                 </div>`
-                        }
-                        if(data[i].location.includes('.java') || data[i].location.includes('.js') || data[i].location.includes('.html') || data[i].location.includes('.css') || data[i].location.includes('.py') || data[i].location.includes('.cs') || data[i].location.includes('.cpp')) {
-                            fileContent.innerHTML +=
-                                `<div class="col-sm-12 col-md-4 col-lg-3">
+                            }
+                            if (data[i].location.includes('.java') || data[i].location.includes('.js') || data[i].location.includes('.html') || data[i].location.includes('.css') || data[i].location.includes('.py') || data[i].location.includes('.cs') || data[i].location.includes('.cpp')) {
+                                fileContent.innerHTML +=
+                                    `<div class="col-sm-12 col-md-4 col-lg-3">
                                     <div class="card border">
                                         <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
-                                            <li><a class="dropdown-item download-button-file" href="#">Загрузить</a></li>
-                                            <li><a class="dropdown-item pin-folder-file" href="#" id="${data[i].id}">Закрепить</a></li>
-                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFolderName">Редактировать</a></li>
-                                            <li><a class="dropdown-item" href="#">Выбрать</a></li>
-                                            <li><a class="dropdown-item" href="#">Поделиться</a></li>
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
+                                            <li><a class="dropdown-item pin-folder-file" href="javascript:void(0);" id="${data[i].id}" onclick="pinFile(${data[i].id})">Закрепить</a></li>
+                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFile">Редактировать</a></li>
+                                            <li><a class="dropdown-item share-file" data-bs-toggle="modal" data-bs-target="#shareFileModal">Поделиться</a></li>
                                             <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
-                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFolderModal">Удалить</a></li>
+                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFileModal">Удалить</a></li>
                                         </ul></div></div><div class="icon"><i class="fas fa-solid fa-file-code" style="color: #158a7c;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location}</p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
                                     </div>
                                 </div>`
-                        }
-                        if(!(data[i].location.includes('.java') || data[i].location.includes('.js') || data[i].location.includes('.html') || data[i].location.includes('.css') || data[i].location.includes('.py') || data[i].location.includes('.cs') || data[i].location.includes('.cpp') || data[i].location.includes('.mp3') || data[i].location.includes('.mp4') || data[i].location.includes('.wav') || data[i].location.includes('.png') || data[i].location.includes('.jpg') || data[i].location.includes('.heic') || data[i].location.includes('.xls'))) {
-                            fileContent.innerHTML +=
-                                `<div class="col-sm-12 col-md-4 col-lg-3">
+                            }
+                            if (!(data[i].location.includes('.java') || data[i].location.includes('.js') || data[i].location.includes('.html') || data[i].location.includes('.css') || data[i].location.includes('.py') || data[i].location.includes('.cs') || data[i].location.includes('.cpp') || data[i].location.includes('.mp3') || data[i].location.includes('.mp4') || data[i].location.includes('.wav') || data[i].location.includes('.png') || data[i].location.includes('.jpg') || data[i].location.includes('.heic') || data[i].location.includes('.xls'))) {
+                                fileContent.innerHTML +=
+                                    `<div class="col-sm-12 col-md-4 col-lg-3">
                                     <div class="card border">
                                         <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
-                                            <li><a class="dropdown-item download-button-file" href="#">Загрузить</a></li>
-                                            <li><a class="dropdown-item pin-folder-file" href="#" id="${data[i].id}">Закрепить</a></li>
-                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFolderName">Редактировать</a></li>
-                                            <li><a class="dropdown-item" href="#">Выбрать</a></li>
-                                            <li><a class="dropdown-item" href="#">Поделиться</a></li>
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
+                                            <li><a class="dropdown-item pin-folder-file" href="javascript:void(0);" id="${data[i].id}" onclick="pinFile(${data[i].id})">Закрепить</a></li>
+                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFile">Редактировать</a></li>
+                                            <li><a class="dropdown-item share-file" data-bs-toggle="modal" data-bs-target="#shareFileModal">Поделиться</a></li>
                                             <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
-                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFolderModal">Удалить</a></li>
+                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFileModal">Удалить</a></li>
                                         </ul></div></div><div class="icon"><i class="fas fa-solid fa-file"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location}</p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
                                     </div>
                                 </div>`
+                            }
                         }
-                    }
-                    if(data[i].bookmark === true) {
-                        if(data[i].location.includes('.xls')) {
-                            fileContent.innerHTML +=
-                                `<div class="col-sm-12 col-md-4 col-lg-3">
+                        if (data[i].bookmark === true) {
+                            if (data[i].location.includes('.xls')) {
+                                fileContent.innerHTML +=
+                                    `<div class="col-sm-12 col-md-4 col-lg-3">
                                     <div class="card border">
                                         <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
-                                            <li><a class="dropdown-item download-button-file" href="#">Загрузить</a></li>
-                                            <li><a class="dropdown-item unpin-folder-file" href="#" id="${data[i].id}">Открепить</a></li>
-                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFolderName">Редактировать</a></li>
-                                            <li><a class="dropdown-item" href="#">Выбрать</a></li>
-                                            <li><a class="dropdown-item" href="#">Поделиться</a></li>
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
+                                            <li><a class="dropdown-item unpin-folder-file" href="javascript:void(0);" id="${data[i].id}" onclick="unpinFile(${data[i].id})">Открепить</a></li>
+                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFile">Редактировать</a></li>
+                                            <li><a class="dropdown-item share-file" data-bs-toggle="modal" data-bs-target="#shareFileModal">Поделиться</a></li>
                                             <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
-                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFolderModal">Удалить</a></li>
+                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFileModal">Удалить</a></li>
                                         </ul></div></div><div class="icon"><i class="fas fa-solid fa-table" style="color: #158a3c;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location} <span><i class="fas fa-solid fa-star" style="color: #00bfff;"></i></span></p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
                                     </div>
                                 </div>`
-                        }
-                        if(data[i].location.includes('.png') || data[i].location.includes('.jpg') || data[i].location.includes('.heic')) {
-                            fileContent.innerHTML +=
-                                `<div class="col-sm-12 col-md-4 col-lg-3">
+                            }
+                            if (data[i].location.includes('.png') || data[i].location.includes('.jpg') || data[i].location.includes('.heic')) {
+                                fileContent.innerHTML +=
+                                    `<div class="col-sm-12 col-md-4 col-lg-3">
                                     <div class="card border">
                                         <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
-                                            <li><a class="dropdown-item download-button-file" href="#">Загрузить</a></li>
-                                            <li><a class="dropdown-item unpin-folder-file" href="#" id="${data[i].id}">Открепить</a></li>
-                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFolderName">Редактировать</a></li>
-                                            <li><a class="dropdown-item" href="#">Выбрать</a></li>
-                                            <li><a class="dropdown-item" href="#">Поделиться</a></li>
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
+                                            <li><a class="dropdown-item unpin-folder-file" href="javascript:void(0);" id="${data[i].id}" onclick="unpinFile(${data[i].id})">Открепить</a></li>
+                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFile">Редактировать</a></li>
+                                            <li><a class="dropdown-item share-file" data-bs-toggle="modal" data-bs-target="#shareFileModal">Поделиться</a></li>
                                             <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
-                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFolderModal">Удалить</a></li>
+                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFileModal">Удалить</a></li>
                                         </ul></div></div><div class="icon"><i class="fas fa-solid fa-file-image" style="color: #15328a;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location} <span><i class="fas fa-solid fa-star" style="color: #00bfff;"></i></span></p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
                                     </div>
                                 </div>`
-                        }
-                        if(data[i].location.includes('.mp4') || data[i].location.includes('.wav')) {
-                            fileContent.innerHTML +=
-                                `<div class="col-sm-12 col-md-4 col-lg-3">
+                            }
+                            if (data[i].location.includes('.mp4') || data[i].location.includes('.wav')) {
+                                fileContent.innerHTML +=
+                                    `<div class="col-sm-12 col-md-4 col-lg-3">
                                     <div class="card border">
                                         <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
-                                            <li><a class="dropdown-item download-button-file" href="#">Загрузить</a></li>
-                                            <li><a class="dropdown-item unpin-folder-file" href="#" id="${data[i].id}">Открепить</a></li>
-                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFolderName">Редактировать</a></li>
-                                            <li><a class="dropdown-item" href="#">Выбрать</a></li>
-                                            <li><a class="dropdown-item" href="#">Поделиться</a></li>
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
+                                            <li><a class="dropdown-item unpin-folder-file" href="javascript:void(0);" id="${data[i].id}" onclick="unpinFile(${data[i].id})">Открепить</a></li>
+                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFile">Редактировать</a></li>
+                                            <li><a class="dropdown-item share-file" data-bs-toggle="modal" data-bs-target="#shareFileModal">Поделиться</a></li>
                                             <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
-                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFolderModal">Удалить</a></li>
-                                        </ul></div></div><div class="icon"><i class="fas fa-solid fa-file-video" style="color: #8a1515;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location} </p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
+                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFileModal">Удалить</a></li>
+                                        </ul></div></div><div class="icon"><i class="fas fa-solid fa-file-video" style="color: #8a1515;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location} <span><i class="fas fa-solid fa-star" style="color: #00bfff;"></i></span></p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
                                     </div>
                                 </div>`
-                        }
-                        if(data[i].location.includes('.mp3')) {
-                            fileContent.innerHTML +=
-                                `<div class="col-sm-12 col-md-4 col-lg-3">
+                            }
+                            if (data[i].location.includes('.mp3')) {
+                                fileContent.innerHTML +=
+                                    `<div class="col-sm-12 col-md-4 col-lg-3">
                                     <div class="card border">
                                         <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
-                                            <li><a class="dropdown-item download-button-file" href="#">Загрузить</a></li>
-                                            <li><a class="dropdown-item unpin-folder-file" href="#" id="${data[i].id}">Открепить</a></li>
-                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFolderName">Редактировать</a></li>
-                                            <li><a class="dropdown-item" href="#">Выбрать</a></li>
-                                            <li><a class="dropdown-item" href="#">Поделиться</a></li>
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
+                                            <li><a class="dropdown-item unpin-folder-file" href="javascript:void(0);" id="${data[i].id}" onclick="unpinFile(${data[i].id})">Открепить</a></li>
+                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFile">Редактировать</a></li>
+                                            <li><a class="dropdown-item share-file" data-bs-toggle="modal" data-bs-target="#shareFileModal">Поделиться</a></li>
                                             <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
-                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFolderModal">Удалить</a></li>
-                                        </ul></div></div><div class="icon"><i class="fas fa-solid fa-file-audio" style="color: #adcd0e;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location} </p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
+                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFileModal">Удалить</a></li>
+                                        </ul></div></div><div class="icon"><i class="fas fa-solid fa-file-audio" style="color: #adcd0e;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location} <span><i class="fas fa-solid fa-star" style="color: #00bfff;"></i></span></p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
                                     </div>
                                 </div>`
-                        }
-                        if(data[i].location.includes('.java') || data[i].location.includes('.js') || data[i].location.includes('.html') || data[i].location.includes('.css') || data[i].location.includes('.py') || data[i].location.includes('.cs') || data[i].location.includes('.cpp')) {
-                            fileContent.innerHTML +=
-                                `<div class="col-sm-12 col-md-4 col-lg-3">
+                            }
+                            if (data[i].location.includes('.java') || data[i].location.includes('.js') || data[i].location.includes('.html') || data[i].location.includes('.css') || data[i].location.includes('.py') || data[i].location.includes('.cs') || data[i].location.includes('.cpp')) {
+                                fileContent.innerHTML +=
+                                    `<div class="col-sm-12 col-md-4 col-lg-3">
                                     <div class="card border">
                                         <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
-                                            <li><a class="dropdown-item download-button-file" href="#">Загрузить</a></li>
-                                            <li><a class="dropdown-item unpin-folder-file" href="#" id="${data[i].id}">Открепить</a></li>
-                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFolderName">Редактировать</a></li>
-                                            <li><a class="dropdown-item" href="#">Выбрать</a></li>
-                                            <li><a class="dropdown-item" href="#">Поделиться</a></li>
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
+                                            <li><a class="dropdown-item unpin-folder-file" href="javascript:void(0);" id="${data[i].id}" onclick="unpinFile(${data[i].id})">Открепить</a></li>
+                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFile">Редактировать</a></li>
+                                            <li><a class="dropdown-item share-file" data-bs-toggle="modal" data-bs-target="#shareFileModal">Поделиться</a></li>
                                             <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
-                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFolderModal">Удалить</a></li>
-                                        </ul></div></div><div class="icon"><i class="fas fa-solid fa-file-code" style="color: #158a7c;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location} </p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
+                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFileModal">Удалить</a></li>
+                                        </ul></div></div><div class="icon"><i class="fas fa-solid fa-file-code" style="color: #158a7c;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location} <span><i class="fas fa-solid fa-star" style="color: #00bfff;"></i></span></p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
                                     </div>
                                 </div>`
-                        }
-                        if(!(data[i].location.includes('.java') || data[i].location.includes('.js') || data[i].location.includes('.html') || data[i].location.includes('.css') || data[i].location.includes('.py') || data[i].location.includes('.cs') || data[i].location.includes('.cpp') || data[i].location.includes('.mp3') || data[i].location.includes('.mp4') || data[i].location.includes('.wav') || data[i].location.includes('.png') || data[i].location.includes('.jpg') || data[i].location.includes('.heic') || data[i].location.includes('.xls'))) {
-                            fileContent.innerHTML +=
-                                `<div class="col-sm-12 col-md-4 col-lg-3">
+                            }
+                            if (!(data[i].location.includes('.java') || data[i].location.includes('.js') || data[i].location.includes('.html') || data[i].location.includes('.css') || data[i].location.includes('.py') || data[i].location.includes('.cs') || data[i].location.includes('.cpp') || data[i].location.includes('.mp3') || data[i].location.includes('.mp4') || data[i].location.includes('.wav') || data[i].location.includes('.png') || data[i].location.includes('.jpg') || data[i].location.includes('.heic') || data[i].location.includes('.xls'))) {
+                                fileContent.innerHTML +=
+                                    `<div class="col-sm-12 col-md-4 col-lg-3">
                                     <div class="card border">
                                         <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
-                                            <li><a class="dropdown-item download-button-file" href="#">Загрузить</a></li>
-                                            <li><a class="dropdown-item unpin-folder-file" href="#" id="${data[i].id}">Открепить</a></li>
-                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFolderName">Редактировать</a></li>
-                                            <li><a class="dropdown-item" href="#">Выбрать</a></li>
-                                            <li><a class="dropdown-item" href="#">Поделиться</a></li>
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
+                                            <li><a class="dropdown-item unpin-folder-file" href="javascript:void(0);" id="${data[i].id}" onclick="unpinFile(${data[i].id})">Открепить</a></li>
+                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFile">Редактировать</a></li>
+                                            <li><a class="dropdown-item share-file" data-bs-toggle="modal" data-bs-target="#shareFileModal">Поделиться</a></li>
                                             <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
-                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFolderModal">Удалить</a></li>
-                                        </ul></div></div><div class="icon"><i class="fas fa-solid fa-file"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location} </p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
+                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFileModal">Удалить</a></li>
+                                        </ul></div></div><div class="icon"><i class="fas fa-solid fa-file"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location} <span><i class="fas fa-solid fa-star" style="color: #00bfff;"></i></span></p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
                                     </div>
                                 </div>`
+                            }
                         }
+                        fetch('http://localhost:8080/api/get_bytes_file/' + data[i].id)
+                            .then(response => {
+                                return response.text()
+                            })
+                            .then(bytes => {
+                                let size = document.getElementById('size-' + data[i].id)
+                                size.textContent += `${bytes}`
+                            })
                     }
-                    fetch('http://localhost:8080/api/get_bytes_file/' + data[i].id)
-                        .then(response => {
-                            return response.text()
-                        })
-                        .then(bytes => {
-                            let size = document.getElementById('size-' + data[i].id)
-                            size.textContent += `${bytes}`
-                        })
+                    const editButton = document.querySelectorAll('.edit-folder-file')
+                    const shareButton = document.querySelectorAll('.share-file')
+                    const infoButton = document.querySelectorAll('.info-folder-file')
+                    const deleteButton = document.querySelectorAll('.delete-folder-file')
+                    let idFile;
+                    for (let j = 0; j < data.length; j++) {
+                        editButton[j]?.addEventListener("click", function () {
+                            let nameFile = document.getElementById('editFileInput');
+                            nameFile.value = data[j].location.substring(0, data[j].location.indexOf("."))
+                            idFile = data[j].id;
+                        }, true);
+                        deleteButton[j]?.addEventListener("click", function () {
+                            idFile = data[j].id;
+                        }, true);
+                        shareButton[j]?.addEventListener("click", function () {
+                            idFile = data[j].id;
+                            const statusShare = document.getElementById('status-share-file')
+                            const submitShare = document.getElementById('submit-share-file')
+                            const cancelShare = document.getElementById('cancel-share-file')
+                            const shareLink = document.getElementById('shared-link-file')
+                            shareLink.value = URL + 'shared-files/' + idFile
+                            if (data[j].shared === true) {
+                                statusShare.classList.remove('text-danger')
+                                statusShare.classList.add('text-success')
+                                statusShare.textContent = 'Да'
+                                cancelShare.disabled = false
+                            }
+                            if (data[j].shared === false) {
+                                statusShare.classList.remove('text-success')
+                                statusShare.classList.add('text-danger')
+                                statusShare.textContent = 'Нет'
+                                submitShare.disabled = false
+                            }
+                        }, true);
+                        infoButton[j]?.addEventListener("click", function () {
+                            let infoDateFile = data[j].dateCreated.slice(0, 10)
+                            let infoDayFile = infoDateFile.slice(8, 10)
+                            let infoMonthFile = infoDateFile.slice(5, 7)
+                            let infoYearFile = infoDateFile.slice(0, 4)
+                            let infoTimeFile = data[j].dateCreated.slice(11, data[j].dateCreated.length - 7)
+
+                            let infoDateModifiedFile = data[j].dateModified.slice(0, 10)
+                            let infoDayModifiedFile = infoDateModifiedFile.slice(8, 10)
+                            let infoMonthModifiedFile = infoDateModifiedFile.slice(5, 7)
+                            let infoYearModifiedFile = infoDateModifiedFile.slice(0, 4)
+                            let infoTimeModifiedFile = data[j].dateModified.slice(11, data[j].dateModified.length - 7)
+
+                            let infoNameFile = data[j].location
+                            let infoSizeFile = document.getElementById('size-' + data[j].id)
+                            let infoUserFile = data[j].users.username
+                            let infoDateCreatedFile = infoDayFile + '.' + infoMonthFile + '.' + infoYearFile + ' ' + infoTimeFile
+                            let infoDateModFile = infoDayModifiedFile + '.' + infoMonthModifiedFile + '.' + infoYearModifiedFile + ' ' + infoTimeModifiedFile
+                            let infoPinFile = data[j].bookmark
+
+                            const infoNameFolder = document.getElementById('infoNameFolder')
+                            const infoSizeFolder = document.getElementById('infoSizeFolder')
+                            const infoUserFolder = document.getElementById('infoUserFolder')
+                            const infoDateFolder = document.getElementById('infoDateFolder')
+                            const infoDateModFolder = document.getElementById('infoDateModFolder')
+                            const infoBookmarkFolder = document.getElementById('infoBookmarkFolder')
+                            const infoBookmarkFolderTrueFalse = document.getElementById('infoBookmarkFolderTrueFalse')
+
+                            if (infoPinFile) {
+                                infoPinFile = 'Да'
+                                infoBookmarkFolderTrueFalse.classList.remove('text-danger')
+                                infoBookmarkFolderTrueFalse.classList.add('text-success')
+                            }
+                            if (!infoPinFile) {
+                                infoPinFile = 'Нет'
+                                infoBookmarkFolderTrueFalse.classList.remove('text-success')
+                                infoBookmarkFolderTrueFalse.classList.add('text-danger')
+                            }
+
+                            infoNameFolder.textContent = 'Название: ' + infoNameFile
+                            infoSizeFolder.textContent = infoSizeFile.textContent
+                            infoUserFolder.textContent = 'Владелец: ' + infoUserFile
+                            infoDateFolder.textContent = 'Дата создания: ' + infoDateCreatedFile
+                            infoDateModFolder.textContent = 'Дата изменения: ' + infoDateModFile
+                            infoBookmarkFolder.textContent = 'Закреплено: '
+                            infoBookmarkFolderTrueFalse.textContent = infoPinFile
+                        }, true);
+                    }
+                    const submitEditFileButton = document.getElementById('editFileSubmitButton')
+                    submitEditFileButton.addEventListener('click', function () {
+                        editFileName(idFile)
+                    }, true)
+
+                    const submitShareButton = document.getElementById('submit-share-file')
+                    submitShareButton.addEventListener('click', function () {
+                        shareFile(idFile)
+                        const status = document.getElementById('status-share-file')
+                        const submitShare = document.getElementById('submit-share-file')
+                        const cancelShare = document.getElementById('cancel-share-file')
+                        status.classList.remove('text-danger')
+                        status.classList.add('text-success')
+                        status.textContent = 'Да'
+                        cancelShare.disabled = false
+                        submitShare.disabled = true
+                    })
+
+                    const unShareButton = document.getElementById('cancel-share-file')
+                    unShareButton.addEventListener('click', function () {
+                        unShareFile(idFile)
+                        const status = document.getElementById('status-share-file')
+                        const submitShare = document.getElementById('submit-share-file')
+                        const cancelShare = document.getElementById('cancel-share-file')
+                        status.classList.remove('text-success')
+                        status.classList.add('text-danger')
+                        status.textContent = 'Нет'
+                        cancelShare.disabled = true
+                        submitShare.disabled = false
+                    })
+
+                    const deleteFolderButton = document.getElementById('deleteFileButton')
+                    deleteFolderButton.addEventListener('click', function () {
+                        deleteFile(idFile)
+                    }, true)
                 }
-            }
-        })
+            })
+    }
+    if (fileSort === null) {
+        fetch('http://localhost:8080/api/get_files_main')
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        throw Error(text)
+                    })
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log(data)
+                const fileContent = document.getElementById('filesContent')
+                const fileCount = document.getElementById('filesCount')
+                fileCount.textContent += ` (${data.length})`
+
+                if (data.length > 0) {
+                    for (let i = 0; i < data.length; i++) {
+                        let date = data[i].dateCreated.slice(0, 10)
+                        let day = date.slice(8, 10)
+                        let month = date.slice(5, 7)
+                        let year = date.slice(0, 4)
+                        if (data[i].bookmark === false) {
+                            if (data[i].location.includes('.xls')) {
+                                fileContent.innerHTML +=
+                                    `<div class="col-sm-12 col-md-4 col-lg-3">
+                                    <div class="card border">
+                                        <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
+                                            <li><a class="dropdown-item pin-folder-file" href="javascript:void(0);" id="${data[i].id}" onclick="pinFile(${data[i].id})">Закрепить</a></li>
+                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFile">Редактировать</a></li>
+                                            <li><a class="dropdown-item share-file" href="#" data-bs-toggle="modal" data-bs-target="#shareFileModal">Поделиться</a></li>
+                                            <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
+                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFileModal">Удалить</a></li>
+                                        </ul></div></div><div class="icon"><i class="fas fa-solid fa-table" style="color: #158a3c;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location}</p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
+                                    </div>
+                                </div>`
+                            }
+                            if (data[i].location.includes('.png') || data[i].location.includes('.jpg') || data[i].location.includes('.heic')) {
+                                fileContent.innerHTML +=
+                                    `<div class="col-sm-12 col-md-4 col-lg-3">
+                                    <div class="card border">
+                                        <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
+                                            <li><a class="dropdown-item pin-folder-file" href="javascript:void(0);" id="${data[i].id}" onclick="pinFile(${data[i].id})">Закрепить</a></li>
+                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFile">Редактировать</a></li>
+                                            <li><a class="dropdown-item share-file" data-bs-toggle="modal" data-bs-target="#shareFileModal">Поделиться</a></li>
+                                            <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
+                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFileModal">Удалить</a></li>
+                                        </ul></div></div><div class="icon"><i class="fas fa-solid fa-file-image" style="color: #15328a;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location}</p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
+                                    </div>
+                                </div>`
+                            }
+                            if (data[i].location.includes('.mp4') || data[i].location.includes('.wav')) {
+                                fileContent.innerHTML +=
+                                    `<div class="col-sm-12 col-md-4 col-lg-3">
+                                    <div class="card border">
+                                        <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
+                                            <li><a class="dropdown-item pin-folder-file" href="javascript:void(0);" id="${data[i].id}" onclick="pinFile(${data[i].id})">Закрепить</a></li>
+                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFile">Редактировать</a></li>
+                                            <li><a class="dropdown-item share-file" data-bs-toggle="modal" data-bs-target="#shareFileModal">Поделиться</a></li>
+                                            <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
+                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFileModal">Удалить</a></li>
+                                        </ul></div></div><div class="icon"><i class="fas fa-solid fa-file-video" style="color: #8a1515;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location}</p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
+                                    </div>
+                                </div>`
+                            }
+                            if (data[i].location.includes('.mp3')) {
+                                fileContent.innerHTML +=
+                                    `<div class="col-sm-12 col-md-4 col-lg-3">
+                                    <div class="card border">
+                                        <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
+                                            <li><a class="dropdown-item pin-folder-file" href="javascript:void(0);" id="${data[i].id}" onclick="pinFile(${data[i].id})">Закрепить</a></li>
+                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFile">Редактировать</a></li>
+                                            <li><a class="dropdown-item share-file" data-bs-toggle="modal" data-bs-target="#shareFileModal">Поделиться</a></li>
+                                            <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
+                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFileModal">Удалить</a></li>
+                                        </ul></div></div><div class="icon"><i class="fas fa-solid fa-file-audio" style="color: #adcd0e;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location}</p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
+                                    </div>
+                                </div>`
+                            }
+                            if (data[i].location.includes('.java') || data[i].location.includes('.js') || data[i].location.includes('.html') || data[i].location.includes('.css') || data[i].location.includes('.py') || data[i].location.includes('.cs') || data[i].location.includes('.cpp')) {
+                                fileContent.innerHTML +=
+                                    `<div class="col-sm-12 col-md-4 col-lg-3">
+                                    <div class="card border">
+                                        <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
+                                            <li><a class="dropdown-item pin-folder-file" href="javascript:void(0);" id="${data[i].id}" onclick="pinFile(${data[i].id})">Закрепить</a></li>
+                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFile">Редактировать</a></li>
+                                            <li><a class="dropdown-item share-file" data-bs-toggle="modal" data-bs-target="#shareFileModal">Поделиться</a></li>
+                                            <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
+                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFileModal">Удалить</a></li>
+                                        </ul></div></div><div class="icon"><i class="fas fa-solid fa-file-code" style="color: #158a7c;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location}</p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
+                                    </div>
+                                </div>`
+                            }
+                            if (!(data[i].location.includes('.java') || data[i].location.includes('.js') || data[i].location.includes('.html') || data[i].location.includes('.css') || data[i].location.includes('.py') || data[i].location.includes('.cs') || data[i].location.includes('.cpp') || data[i].location.includes('.mp3') || data[i].location.includes('.mp4') || data[i].location.includes('.wav') || data[i].location.includes('.png') || data[i].location.includes('.jpg') || data[i].location.includes('.heic') || data[i].location.includes('.xls'))) {
+                                fileContent.innerHTML +=
+                                    `<div class="col-sm-12 col-md-4 col-lg-3">
+                                    <div class="card border">
+                                        <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
+                                            <li><a class="dropdown-item pin-folder-file" href="javascript:void(0);" id="${data[i].id}" onclick="pinFile(${data[i].id})">Закрепить</a></li>
+                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFile">Редактировать</a></li>
+                                            <li><a class="dropdown-item share-file" data-bs-toggle="modal" data-bs-target="#shareFileModal">Поделиться</a></li>
+                                            <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
+                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFileModal">Удалить</a></li>
+                                        </ul></div></div><div class="icon"><i class="fas fa-solid fa-file"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location}</p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
+                                    </div>
+                                </div>`
+                            }
+                        }
+                        if (data[i].bookmark === true) {
+                            if (data[i].location.includes('.xls')) {
+                                fileContent.innerHTML +=
+                                    `<div class="col-sm-12 col-md-4 col-lg-3">
+                                    <div class="card border">
+                                        <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
+                                            <li><a class="dropdown-item unpin-folder-file" href="javascript:void(0);" id="${data[i].id}" onclick="unpinFile(${data[i].id})">Открепить</a></li>
+                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFile">Редактировать</a></li>
+                                            <li><a class="dropdown-item share-file" data-bs-toggle="modal" data-bs-target="#shareFileModal">Поделиться</a></li>
+                                            <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
+                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFileModal">Удалить</a></li>
+                                        </ul></div></div><div class="icon"><i class="fas fa-solid fa-table" style="color: #158a3c;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location} <span><i class="fas fa-solid fa-star" style="color: #00bfff;"></i></span></p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
+                                    </div>
+                                </div>`
+                            }
+                            if (data[i].location.includes('.png') || data[i].location.includes('.jpg') || data[i].location.includes('.heic')) {
+                                fileContent.innerHTML +=
+                                    `<div class="col-sm-12 col-md-4 col-lg-3">
+                                    <div class="card border">
+                                        <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
+                                            <li><a class="dropdown-item unpin-folder-file" href="javascript:void(0);" id="${data[i].id}" onclick="unpinFile(${data[i].id})">Открепить</a></li>
+                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFile">Редактировать</a></li>
+                                            <li><a class="dropdown-item share-file" data-bs-toggle="modal" data-bs-target="#shareFileModal">Поделиться</a></li>
+                                            <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
+                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFileModal">Удалить</a></li>
+                                        </ul></div></div><div class="icon"><i class="fas fa-solid fa-file-image" style="color: #15328a;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location} <span><i class="fas fa-solid fa-star" style="color: #00bfff;"></i></span></p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
+                                    </div>
+                                </div>`
+                            }
+                            if (data[i].location.includes('.mp4') || data[i].location.includes('.wav')) {
+                                fileContent.innerHTML +=
+                                    `<div class="col-sm-12 col-md-4 col-lg-3">
+                                    <div class="card border">
+                                        <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
+                                            <li><a class="dropdown-item unpin-folder-file" href="javascript:void(0);" id="${data[i].id}" onclick="unpinFile(${data[i].id})">Открепить</a></li>
+                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFile">Редактировать</a></li>
+                                            <li><a class="dropdown-item share-file" data-bs-toggle="modal" data-bs-target="#shareFileModal">Поделиться</a></li>
+                                            <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
+                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFileModal">Удалить</a></li>
+                                        </ul></div></div><div class="icon"><i class="fas fa-solid fa-file-video" style="color: #8a1515;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location} <span><i class="fas fa-solid fa-star" style="color: #00bfff;"></i></span></p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
+                                    </div>
+                                </div>`
+                            }
+                            if (data[i].location.includes('.mp3')) {
+                                fileContent.innerHTML +=
+                                    `<div class="col-sm-12 col-md-4 col-lg-3">
+                                    <div class="card border">
+                                        <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
+                                            <li><a class="dropdown-item unpin-folder-file" href="javascript:void(0);" id="${data[i].id}" onclick="unpinFile(${data[i].id})">Открепить</a></li>
+                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFile">Редактировать</a></li>
+                                            <li><a class="dropdown-item share-file" data-bs-toggle="modal" data-bs-target="#shareFileModal">Поделиться</a></li>
+                                            <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
+                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFileModal">Удалить</a></li>
+                                        </ul></div></div><div class="icon"><i class="fas fa-solid fa-file-audio" style="color: #adcd0e;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location} <span><i class="fas fa-solid fa-star" style="color: #00bfff;"></i></span></p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
+                                    </div>
+                                </div>`
+                            }
+                            if (data[i].location.includes('.java') || data[i].location.includes('.js') || data[i].location.includes('.html') || data[i].location.includes('.css') || data[i].location.includes('.py') || data[i].location.includes('.cs') || data[i].location.includes('.cpp')) {
+                                fileContent.innerHTML +=
+                                    `<div class="col-sm-12 col-md-4 col-lg-3">
+                                    <div class="card border">
+                                        <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
+                                            <li><a class="dropdown-item unpin-folder-file" href="javascript:void(0);" id="${data[i].id}" onclick="unpinFile(${data[i].id})">Открепить</a></li>
+                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFile">Редактировать</a></li>
+                                            <li><a class="dropdown-item share-file" data-bs-toggle="modal" data-bs-target="#shareFileModal">Поделиться</a></li>
+                                            <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
+                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFileModal">Удалить</a></li>
+                                        </ul></div></div><div class="icon"><i class="fas fa-solid fa-file-code" style="color: #158a7c;"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location} <span><i class="fas fa-solid fa-star" style="color: #00bfff;"></i></span></p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
+                                    </div>
+                                </div>`
+                            }
+                            if (!(data[i].location.includes('.java') || data[i].location.includes('.js') || data[i].location.includes('.html') || data[i].location.includes('.css') || data[i].location.includes('.py') || data[i].location.includes('.cs') || data[i].location.includes('.cpp') || data[i].location.includes('.mp3') || data[i].location.includes('.mp4') || data[i].location.includes('.wav') || data[i].location.includes('.png') || data[i].location.includes('.jpg') || data[i].location.includes('.heic') || data[i].location.includes('.xls'))) {
+                                fileContent.innerHTML +=
+                                    `<div class="col-sm-12 col-md-4 col-lg-3">
+                                    <div class="card border">
+                                        <div class="file"><a><div class="hover"><div class="dropdown dropstart"><a class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false"><svg class="bi bi-gear" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewbox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"></path><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"></path></svg></a><ul class="dropdown-menu">
+                                            <li><a class="dropdown-item download-button-file" href="javascript:void(0);" onclick="downloadFile(${data[i].id}, '${data[i].location}')">Загрузить</a></li>
+                                            <li><a class="dropdown-item unpin-folder-file" href="javascript:void(0);" id="${data[i].id}" onclick="unpinFile(${data[i].id})">Открепить</a></li>
+                                            <li><a class="dropdown-item edit-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#editFile">Редактировать</a></li>
+                                            <li><a class="dropdown-item share-file" data-bs-toggle="modal" data-bs-target="#shareFileModal">Поделиться</a></li>
+                                            <li><a class="dropdown-item info-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#infoFolderModal">Информация</a></li>
+                                            <li><a class="dropdown-item text-danger delete-folder-file" href="#" data-bs-toggle="modal" data-bs-target="#deleteFileModal">Удалить</a></li>
+                                        </ul></div></div><div class="icon"><i class="fas fa-solid fa-file"></i></div><a href="#" style="color: inherit; text-decoration: none;" onclick="viewFile(${data[i].id}, '${data[i].location}')"><div class="file-name border-top"><p class="m-b-5 text-truncate">${data[i].location} <span><i class="fas fa-solid fa-star" style="color: #00bfff;"></i></span></p><small><span id="size-${data[i].id}">Размер: </span><span class="text-muted date">${day}.${month}.${year}</span></small></div></a></a></div>
+                                    </div>
+                                </div>`
+                            }
+                        }
+                        fetch('http://localhost:8080/api/get_bytes_file/' + data[i].id)
+                            .then(response => {
+                                return response.text()
+                            })
+                            .then(bytes => {
+                                let size = document.getElementById('size-' + data[i].id)
+                                size.textContent += `${bytes}`
+                            })
+                    }
+                    const editButton = document.querySelectorAll('.edit-folder-file')
+                    const shareButton = document.querySelectorAll('.share-file')
+                    const infoButton = document.querySelectorAll('.info-folder-file')
+                    const deleteButton = document.querySelectorAll('.delete-folder-file')
+                    let idFile;
+                    for (let j = 0; j < data.length; j++) {
+                        editButton[j]?.addEventListener("click", function () {
+                            let nameFile = document.getElementById('editFileInput');
+                            nameFile.value = data[j].location.substring(0, data[j].location.indexOf("."))
+                            idFile = data[j].id;
+                        }, true);
+                        deleteButton[j]?.addEventListener("click", function () {
+                            idFile = data[j].id;
+                        }, true);
+                        shareButton[j]?.addEventListener("click", function () {
+                            idFile = data[j].id;
+                            const statusShare = document.getElementById('status-share-file')
+                            const submitShare = document.getElementById('submit-share-file')
+                            const cancelShare = document.getElementById('cancel-share-file')
+                            const shareLink = document.getElementById('shared-link-file')
+                            shareLink.value = URL + 'shared-files/' + idFile
+                            if (data[j].shared === true) {
+                                statusShare.classList.remove('text-danger')
+                                statusShare.classList.add('text-success')
+                                statusShare.textContent = 'Да'
+                                cancelShare.disabled = false
+                            }
+                            if (data[j].shared === false) {
+                                statusShare.classList.remove('text-success')
+                                statusShare.classList.add('text-danger')
+                                statusShare.textContent = 'Нет'
+                                submitShare.disabled = false
+                            }
+                        }, true);
+                        infoButton[j]?.addEventListener("click", function () {
+                            let infoDateFile = data[j].dateCreated.slice(0, 10)
+                            let infoDayFile = infoDateFile.slice(8, 10)
+                            let infoMonthFile = infoDateFile.slice(5, 7)
+                            let infoYearFile = infoDateFile.slice(0, 4)
+                            let infoTimeFile = data[j].dateCreated.slice(11, data[j].dateCreated.length - 7)
+
+                            let infoDateModifiedFile = data[j].dateModified.slice(0, 10)
+                            let infoDayModifiedFile = infoDateModifiedFile.slice(8, 10)
+                            let infoMonthModifiedFile = infoDateModifiedFile.slice(5, 7)
+                            let infoYearModifiedFile = infoDateModifiedFile.slice(0, 4)
+                            let infoTimeModifiedFile = data[j].dateModified.slice(11, data[j].dateModified.length - 7)
+
+                            let infoNameFile = data[j].location
+                            let infoSizeFile = document.getElementById('size-' + data[j].id)
+                            let infoUserFile = data[j].users.username
+                            let infoDateCreatedFile = infoDayFile + '.' + infoMonthFile + '.' + infoYearFile + ' ' + infoTimeFile
+                            let infoDateModFile = infoDayModifiedFile + '.' + infoMonthModifiedFile + '.' + infoYearModifiedFile + ' ' + infoTimeModifiedFile
+                            let infoPinFile = data[j].bookmark
+
+                            const infoNameFolder = document.getElementById('infoNameFolder')
+                            const infoSizeFolder = document.getElementById('infoSizeFolder')
+                            const infoUserFolder = document.getElementById('infoUserFolder')
+                            const infoDateFolder = document.getElementById('infoDateFolder')
+                            const infoDateModFolder = document.getElementById('infoDateModFolder')
+                            const infoBookmarkFolder = document.getElementById('infoBookmarkFolder')
+                            const infoBookmarkFolderTrueFalse = document.getElementById('infoBookmarkFolderTrueFalse')
+
+                            if (infoPinFile) {
+                                infoPinFile = 'Да'
+                                infoBookmarkFolderTrueFalse.classList.remove('text-danger')
+                                infoBookmarkFolderTrueFalse.classList.add('text-success')
+                            }
+                            if (!infoPinFile) {
+                                infoPinFile = 'Нет'
+                                infoBookmarkFolderTrueFalse.classList.remove('text-success')
+                                infoBookmarkFolderTrueFalse.classList.add('text-danger')
+                            }
+
+                            infoNameFolder.textContent = 'Название: ' + infoNameFile
+                            infoSizeFolder.textContent = infoSizeFile.textContent
+                            infoUserFolder.textContent = 'Владелец: ' + infoUserFile
+                            infoDateFolder.textContent = 'Дата создания: ' + infoDateCreatedFile
+                            infoDateModFolder.textContent = 'Дата изменения: ' + infoDateModFile
+                            infoBookmarkFolder.textContent = 'Закреплено: '
+                            infoBookmarkFolderTrueFalse.textContent = infoPinFile
+                        }, true);
+                    }
+                    const submitEditFileButton = document.getElementById('editFileSubmitButton')
+                    submitEditFileButton.addEventListener('click', function () {
+                        editFileName(idFile)
+                    }, true)
+
+                    const submitShareButton = document.getElementById('submit-share-file')
+                    submitShareButton.addEventListener('click', function () {
+                        shareFile(idFile)
+                        const status = document.getElementById('status-share-file')
+                        const submitShare = document.getElementById('submit-share-file')
+                        const cancelShare = document.getElementById('cancel-share-file')
+                        status.classList.remove('text-danger')
+                        status.classList.add('text-success')
+                        status.textContent = 'Да'
+                        cancelShare.disabled = false
+                        submitShare.disabled = true
+                    })
+
+                    const unShareButton = document.getElementById('cancel-share-file')
+                    unShareButton.addEventListener('click', function () {
+                        unShareFile(idFile)
+                        const status = document.getElementById('status-share-file')
+                        const submitShare = document.getElementById('submit-share-file')
+                        const cancelShare = document.getElementById('cancel-share-file')
+                        status.classList.remove('text-success')
+                        status.classList.add('text-danger')
+                        status.textContent = 'Нет'
+                        cancelShare.disabled = true
+                        submitShare.disabled = false
+                    })
+
+                    const deleteFolderButton = document.getElementById('deleteFileButton')
+                    deleteFolderButton.addEventListener('click', function () {
+                        deleteFile(idFile)
+                    }, true)
+                }
+            })
+    }
 }
 
 if (window.innerWidth < 768) {
@@ -1330,6 +1987,20 @@ logoutButton.addEventListener('click', function () {
 const copyButton = document.getElementById('copy-clip')
 copyButton.addEventListener('click', async function () {
     let copyText = document.getElementById('shared-link')
+    const shareToast = document.getElementById('shareToast')
+    copyText.select();
+    copyText.setSelectionRange(0, 99999); // For mobile devices
+
+    // Copy the text inside the text field
+    await navigator.clipboard.writeText(copyText.value);
+
+    const toastShare = new bootstrap.Toast(shareToast)
+    toastShare.show()
+})
+
+const copyButtonFile = document.getElementById('copy-clip-file')
+copyButtonFile.addEventListener('click', async function () {
+    let copyText = document.getElementById('shared-link-file')
     const shareToast = document.getElementById('shareToast')
     copyText.select();
     copyText.setSelectionRange(0, 99999); // For mobile devices

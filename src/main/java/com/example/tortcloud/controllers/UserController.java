@@ -116,6 +116,7 @@ public class UserController {
         return ResponseEntity.ok().body(userService.allUsers());
     }
 
+    @SecurityRequirement(name = "basicAuth")
     @GetMapping("/get_user_storage")
     public String getUserStorage() {
         Users users = userService.getUserFromAuth();
@@ -123,6 +124,7 @@ public class UserController {
         return String.valueOf(users.getStorage());
     }
 
+    @SecurityRequirement(name = "basicAuth")
     @PutMapping("/update_user_password")
     public ResponseEntity<String> editUserPassword(@RequestHeader String oldPassword, @RequestHeader String newPassword, @RequestHeader String newPasswordConfirm) {
         Users user = userService.getUserFromAuth();
@@ -143,6 +145,7 @@ public class UserController {
         }
     }
 
+    @SecurityRequirement(name = "basicAuth")
     @PutMapping("/update_email")
     public ResponseEntity<Users> updateEmailUser(@RequestHeader @Email String email) {
         Users user = userService.getUserFromAuth();
@@ -162,6 +165,7 @@ public class UserController {
         return ResponseEntity.ok().body(user);
     }
 
+    @SecurityRequirement(name = "basicAuth")
     @PostMapping("/sent_message_to_admin")
     public ResponseEntity<MessageSchema> sentMessage(@RequestBody String message) {
         Users user = userService.getUserFromAuth();
